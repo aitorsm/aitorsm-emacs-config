@@ -1,7 +1,7 @@
 (setq gc-cons-threshold (* 50 1000 1000))
 
 (setq inhibit-startup-message t)
-
+(setq default-directory "c:/Users/aitor/")
 (menu-bar-mode -1)
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
@@ -33,7 +33,6 @@
                 prog-mode-hook
                 conf-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode 1))))
-
 
 
 ;; Disable line numbers for some modes ---------------------------
@@ -365,7 +364,11 @@
   :hook ((typescript-mode js2-mode web-mode) . lsp)
   :bind (:map lsp-mode-map
          ("TAB" . completion-at-point))
-  :custom (lsp-headerline-breadcrumb-enable nil))
+  :custom
+  (lsp-headerline-breadcrumb-enable nil)
+  (lsp-enable-identation nil)
+  (lsp-enable-on-type-formatting nil)
+  )
 
 (use-package lsp-ui
   :hook (lsp-mode . lsp-ui-mode)
@@ -376,10 +379,8 @@
   (lsp-ui-doc-show))
 
 (use-package lsp-treemacs
-  :after lsp)
-
-(use-package lsp-ivy
-  :hook (lsp-mode . lsp-ivy-mode))
+  :after lsp-mode
+  )
 
 (setq lsp-ui-sideline-enable nil)
 (setq lsp-ui-sideline-show-hover nil)
@@ -460,6 +461,7 @@
 (add-to-list 'auto-mode-alist '("\\.html\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.jsx\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.tsx\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.css\\'" . web-mode))
 
 ;; 1. Start the server with `httpd-start'
 ;; 2. Use `impatient-mode' on any buffer
@@ -478,17 +480,16 @@
          web-mode
          typescript-mode
          js2-mode
-	 css-mode))
+	       css-mode
+         html-mode))
 
 (use-package emmet-mode
   :defer t
   :hook (web-mode
-	 css-mode))
-
-
+         html-mode
+	       css-mode))
 
 ;; Python
-
 
 (use-package python-mode
   :ensure t
@@ -505,6 +506,11 @@
   :after python-mode
   :config
   (pyvenv-mode 1))
+
+(use-package anaconda-mode
+  :after python-mode
+  :hook ((python-mode . anaconda-mode)
+         (python-mode . anaconda-eldoc-mode)))
 
 ;; Parinfy for lispy languages
 
@@ -524,7 +530,7 @@
         smart-yank)))  ; Yank behavior depend on mode.
 
 ;; Flycheck syntax checking
-
+'
 (use-package flycheck
   :defer t
   :hook (lsp-mode . flycheck-mode))
@@ -540,9 +546,9 @@
 
 (use-package smartparens
   :hook (prog-mode . smartparens-mode))
+(require 'smartparens-config)
 
 (add-hook 'prog-mode-hook (lambda() (electric-pair-mode t)))
-
 
 ;; Startup time
 
@@ -558,3 +564,16 @@
 (add-hook 'emacs-startup-hook #'efs/display-startup-time)
 
 (setq gc-cons-threshold (* 2 1000 1000))
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(package-selected-packages
+   '(smartparens yasnippet flycheck pyvenv python-mode emmet-mode rainbow-mode skewer-mode impatient-mode web-mode prettier-js apheleia js2-mode typescript-mode nvm company-box company dap-mode lsp-ivy lsp-treemacs lsp-ui lsp-mode auto-package-update dired-hide-dotfiles dired-open all-the-icons-dired dired-single eshell-git-prompt visual-fill-column org-bullets forge magit counsel-projectile projectile ws-butler hydra helpful ivy-prescient prescient flx counsel ivy-rich ace-window which-key rainbow-delimiters doom-modeline all-the-icons swiper use-package)))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
