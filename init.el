@@ -564,16 +564,3 @@
 (add-hook 'emacs-startup-hook #'efs/display-startup-time)
 
 (setq gc-cons-threshold (* 2 1000 1000))
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(package-selected-packages
-   '(smartparens yasnippet flycheck pyvenv python-mode emmet-mode rainbow-mode skewer-mode impatient-mode web-mode prettier-js apheleia js2-mode typescript-mode nvm company-box company dap-mode lsp-ivy lsp-treemacs lsp-ui lsp-mode auto-package-update dired-hide-dotfiles dired-open all-the-icons-dired dired-single eshell-git-prompt visual-fill-column org-bullets forge magit counsel-projectile projectile ws-butler hydra helpful ivy-prescient prescient flx counsel ivy-rich ace-window which-key rainbow-delimiters doom-modeline all-the-icons swiper use-package)))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
