@@ -1,7 +1,12 @@
 (setq gc-cons-threshold (* 50 1000 1000))
 
 (setq inhibit-startup-message t)
-(setq default-directory "c:/Users/aitor/")
+;; Set default directory
+
+(when (eq system-type 'windows-nt)
+    (setq default-directory "c:/Users/aitor/")
+  )
+
 (menu-bar-mode -1)
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
@@ -27,13 +32,11 @@
 
 (setq-default indent-tabs-mode nil)
 
-
 ;; Enable line numbers for some modes ---------------------------
 (dolist (mode '(text-mode-hook
                 prog-mode-hook
                 conf-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode 1))))
-
 
 ;; Disable line numbers for some modes ---------------------------
 (dolist (mode '(org-mode-hook
@@ -296,8 +299,11 @@
 
 ;; shell settings
 
-(setq explicit-shell-file-name "powershell.exe")
-(setq explicit-powershell.exe-args '())
+(when (eq system-type 'windows-nt)
+    (progn
+      (setq explicit-shell-file-name "powershell.exe")
+      (setq explicit-powershell.exe-args '()))
+  )
 
 ;; eshell settings
 
@@ -395,7 +401,7 @@
   (dap-node-setup))
 
 (use-package company
-  :after lsp-mode
+  :after (lsp-mode latex-mode)
   :hook (lsp-mode . company-mode)
   :bind (:map company-active-map
          ("<tab>" . company-complete-selection))
@@ -550,6 +556,34 @@
 
 (add-hook 'prog-mode-hook (lambda() (electric-pair-mode t)))
 
+;; PDF Tools
+
+(use-package pdf-tools
+  :defer t
+  :config
+  (pdf-tools-install)
+  (setq-default pdf-view-display-size 'fit-page))
+
+;; LaTex
+
+(use-package auctex
+  :ensure t
+  :defer t
+  :hook (latex-mode .
+                    (lambda ()
+                      (push (list 'output-pdf "PDF Tools"))))
+  )
+
+
+(use-package company-auctex
+  :after (auctex company)
+  :config (company-auctex-init)
+  )
+
+(setq TeX-auto-save t)
+(setq TeX-parse-self t)
+(setq-default TeX-master nil)
+
 ;; Startup time
 
 ;; Make gc pauses faster by decreasing the threshold. ----------------------------------
@@ -564,3 +598,16 @@
 (add-hook 'emacs-startup-hook #'efs/display-startup-time)
 
 (setq gc-cons-threshold (* 2 1000 1000))
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(package-selected-packages
+   '(zenburn-theme yasnippet ws-butler which-key web-mode vue-mode visual-fill-column use-package ubuntu-theme tron-legacy-theme tide the-matrix-theme smartparens skewer-mode rainbow-mode rainbow-delimiters pyvenv python-mode professional-theme prettier-js powershell org-bullets nvm nimbus-theme night-owl-theme lsp-ui lsp-pyright lsp-latex lsp-ivy lsp-dart json-mode jedi ivy-rich ivy-prescient impatient-mode iceberg-theme highlight-indentation helpful gotham-theme gnu-elpa forge flx flutter espresso-theme eshell-git-prompt emmet-mode eink-theme doom-themes doom-modeline dired-single dired-open dired-hide-dotfiles cyberpunk-theme cyberpunk-2019-theme csv-mode counsel-projectile conda company-go company-box company-anaconda command-log-mode borland-blue-theme auto-package-update apheleia all-the-icons-dired add-node-modules-path acme-theme)))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
