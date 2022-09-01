@@ -598,16 +598,3 @@
 (add-hook 'emacs-startup-hook #'efs/display-startup-time)
 
 (setq gc-cons-threshold (* 2 1000 1000))
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(package-selected-packages
-   '(zenburn-theme yasnippet ws-butler which-key web-mode vue-mode visual-fill-column use-package ubuntu-theme tron-legacy-theme tide the-matrix-theme smartparens skewer-mode rainbow-mode rainbow-delimiters pyvenv python-mode professional-theme prettier-js powershell org-bullets nvm nimbus-theme night-owl-theme lsp-ui lsp-pyright lsp-latex lsp-ivy lsp-dart json-mode jedi ivy-rich ivy-prescient impatient-mode iceberg-theme highlight-indentation helpful gotham-theme gnu-elpa forge flx flutter espresso-theme eshell-git-prompt emmet-mode eink-theme doom-themes doom-modeline dired-single dired-open dired-hide-dotfiles cyberpunk-theme cyberpunk-2019-theme csv-mode counsel-projectile conda company-go company-box company-anaconda command-log-mode borland-blue-theme auto-package-update apheleia all-the-icons-dired add-node-modules-path acme-theme)))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
