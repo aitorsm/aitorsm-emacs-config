@@ -23,7 +23,6 @@
 (set-frame-parameter (selected-frame) 'fullscreen 'maximized)
 (add-to-list 'default-frame-alist '(fullscreen . maximized))
 
-
 ;; Tab width --------------------------------------------
 
 (setq-default tab-width 2)
@@ -401,7 +400,7 @@
   (dap-node-setup))
 
 (use-package company
-  :after (lsp-mode latex-mode)
+  :after (lsp-mode)
   :hook (lsp-mode . company-mode)
   :bind (:map company-active-map
          ("<tab>" . company-complete-selection))
@@ -442,7 +441,6 @@
   ;; Set up proper indentation in JavaScript and JSON files
   (add-hook 'js2-mode-hook #'dw/set-js-indentation)
   (add-hook 'json-mode-hook #'dw/set-js-indentation))
-
 
 (use-package apheleia
   :config
@@ -535,8 +533,10 @@
         smart-tab      ; C-b & C-f jump positions and smart shift with tab & S-tab.
         smart-yank)))  ; Yank behavior depend on mode.
 
+(add-hook 'emacs-lisp-mode-hook 'company-mode)
+
 ;; Flycheck syntax checking
-'
+
 (use-package flycheck
   :defer t
   :hook (lsp-mode . flycheck-mode))
@@ -561,28 +561,56 @@
 (use-package pdf-tools
   :defer t
   :config
-  (pdf-tools-install)
-  (setq-default pdf-view-display-size 'fit-page))
+  (progn
+    (pdf-tools-install)
+    (setq-default pdf-view-display-size 'fit-page)
+    (define-key pdf-view-mode-map (kbd "h")
+			'pdf-annot-add-highlight-markup-annotation)
+		(define-key pdf-view-mode-map (kbd "t")
+			'pdf-annot-add-text-annotation)
+		(define-key pdf-view-mode-map (kbd "d")
+			'pdf-annot-delete)
+		(define-key pdf-view-mode-map (kbd "s")
+				   'pdf-annot-add-strikeout-markup-annotation))
+  )
 
 ;; LaTex
 
-(use-package auctex
+(use-package reftex
   :ensure t
   :defer t
-  :hook (latex-mode .
-                    (lambda ()
-                      (push (list 'output-pdf "PDF Tools"))))
-  )
+  :config
+  (setq reftex-cite-prompt-optional-args t)) ;; Prompt for empty optional arguments in cite
 
+(use-package auto-dictionary
+  :ensure t
+  :init(add-hook 'flyspell-mode-hook (lambda () (auto-dictionary-mode 1))))
+
+(use-package tex
+  :ensure auctex
+  :mode ("\\.tex\\'" . latex-mode)
+  :config (progn
+			      (setq TeX-source-correlate-mode t)
+			      (setq TeX-source-correlate-method 'synctex)
+			      (setq reftex-plug-into-AUCTeX t)
+			      (pdf-tools-install)
+			      (setq TeX-view-program-selection '((output-pdf "PDF Tools"))
+				          TeX-source-correlate-start-server t)
+			      ;; Update PDF buffers after successful LaTeX runs
+			      (add-hook 'TeX-after-compilation-finished-functions
+					            #'TeX-revert-document-buffer)
+			      (add-hook 'LaTeX-mode-hook
+					            (lambda ()
+						            (reftex-mode t)
+						            (flyspell-mode t)
+                        (company-mode t)))
+			      )
+  )
 
 (use-package company-auctex
-  :after (auctex company)
+  :after (latex-mode company-mode)
   :config (company-auctex-init)
   )
-
-(setq TeX-auto-save t)
-(setq TeX-parse-self t)
-(setq-default TeX-master nil)
 
 ;; Startup time
 
