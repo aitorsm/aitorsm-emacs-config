@@ -476,7 +476,6 @@
 
 ;; Prettier
 
-
 (use-package rainbow-mode
   :defer t
   :hook (org-mode
@@ -581,6 +580,11 @@
   :defer t
   :config
   (setq reftex-cite-prompt-optional-args t)) ;; Prompt for empty optional arguments in cite
+
+(setq ispell-program-name "c:/Users/aitor/Dropbox/utils/hunspell/bin/hunspell.exe")
+(setq ispell-local-dictionary "en_US")
+(setq ispell-local-dictionary-alist
+      '(("en_US" "[[:alpha:]]" "[^[:alpha:]]" "[']" nil ("-d" "en_US") nil utf-8)))
 
 (use-package auto-dictionary
   :ensure t
