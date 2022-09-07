@@ -442,6 +442,7 @@
   (add-hook 'js2-mode-hook #'dw/set-js-indentation)
   (add-hook 'json-mode-hook #'dw/set-js-indentation))
 
+
 (use-package apheleia
   :config
   (apheleia-global-mode +1))
@@ -514,6 +515,15 @@
   :after python-mode
   :hook ((python-mode . anaconda-mode)
          (python-mode . anaconda-eldoc-mode)))
+
+;; Golang
+
+(use-package go-mode
+  :mode ("\\.go?\\'" . go-mode)
+  :hook (go-mode . company-mode))
+
+(use-package company-go
+  :after (go-mode company-mode))
 
 ;; Parinfy for lispy languages
 
@@ -616,6 +626,8 @@
   :config (company-auctex-init)
   )
 
+
+
 ;; Startup time
 
 ;; Make gc pauses faster by decreasing the threshold. ----------------------------------
@@ -630,3 +642,16 @@
 (add-hook 'emacs-startup-hook #'efs/display-startup-time)
 
 (setq gc-cons-threshold (* 2 1000 1000))
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(package-selected-packages
+   '(yasnippet ws-butler which-key web-mode vue-mode visual-fill-column use-package tide the-matrix-theme smartparens skewer-mode rainbow-mode rainbow-delimiters pyvenv python-mode prettier-js powershell org-bullets nvm nimbus-theme lsp-ui lsp-pyright lsp-latex lsp-ivy lsp-dart json-mode jedi ivy-rich ivy-prescient impatient-mode iceberg-theme highlight-indentation helpful gnu-elpa forge flx eshell-git-prompt emmet-mode eink-theme doom-themes doom-modeline dired-single dired-open dired-hide-dotfiles counsel-projectile conda company-go company-box company-anaconda command-log-mode borland-blue-theme auto-package-update apheleia all-the-icons-dired add-node-modules-path)))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
