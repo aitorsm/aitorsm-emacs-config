@@ -1,5 +1,7 @@
 (setq gc-cons-threshold (* 50 1000 1000))
 
+(setq debug-on-error t)
+
 (setq inhibit-startup-message t)
 ;; Set default directory
 
@@ -31,6 +33,33 @@
 
 (setq-default indent-tabs-mode nil)
 
+
+;; Prog-mode identation settings
+(defun my/set-indentation ()
+  "Set the indentation to 2 spaces."
+  (setq indent-tabs-mode nil)
+  (setq tab-width 2)
+  (setq-default tab-width 2)
+  (when (derived-mode-p 'js-mode 'typescript-mode 'web-mode)
+    (setq js-indent-level 2))
+  (when (derived-mode-p 'css-mode 'scss-mode)
+    (setq css-indent-offset 2))
+  (when (derived-mode-p 'web-mode)
+    (setq web-mode-code-indent-offset 2)
+    (setq web-mode-css-indent-offset 2)
+    (setq web-mode-markup-indent-offset 2)
+    (setq web-mode-attribute-indent-offset 2)
+    (setq-default web-mode-code-indent-offset 2)
+    (setq-default web-mode-css-indent-offset 2)
+    (setq-default web-mode-markup-indent-offset 2)
+    (setq-default web-mode-attribute-indent-offset 2)
+    )
+  (when (derived-mode-p 'python-mode)
+    (setq python-indent-offset 2)))
+
+(add-hook 'prog-mode-hook 'my/set-indentation)
+
+
 ;; Enable line numbers for some modes ---------------------------
 (dolist (mode '(text-mode-hook
                 prog-mode-hook
@@ -53,9 +82,7 @@
 
 (set-face-attribute 'fixed-pitch nil :family "MesloLGS NF" :height 110)
 
-;; Initialize package sources 
-
-(require 'package)
+;; Initialize package sources
 
 (setq package-archives '(("melpa" . "https://melpa.org/packages/")
 			 ("org" . "https://orgmode.org/elpa/")
@@ -280,6 +307,12 @@
   :hook (org-mode . efs/org-mode-setup)
   :config
   (setq org-ellipsis " ▾")
+  (setq org-latex-listings 'minted)
+  (setq org-latex-packages-alist '(("" "minted")))
+  (setq org-latex-pdf-process
+        '("pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
+        "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
+        "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"))
   (efs/org-font-setup))
 
 (use-package org-bullets
@@ -373,6 +406,7 @@
   (lsp-headerline-breadcrumb-enable nil)
   (lsp-enable-identation nil)
   (lsp-enable-on-type-formatting nil)
+  (lsp-eslint-enable nil)
   )
 
 (use-package lsp-ui
@@ -422,12 +456,7 @@
 
 (use-package typescript-mode
   :mode "\\.ts\\'"
-  :config
-  (setq typescript-indent-level 2))
-
-(defun dw/set-js-indentation ()
-  (setq js-indent-level 2)
-  (setq-default tab-width 2))
+  )
 
 (use-package js2-mode
   :mode "\\.jsx?\\'"
@@ -437,36 +466,36 @@
 
   ;; Don't use built-in syntax checking
   (setq js2-mode-show-strict-warnings nil)
-
-  ;; Set up proper indentation in JavaScript and JSON files
-  (add-hook 'js2-mode-hook #'dw/set-js-indentation)
-  (add-hook 'json-mode-hook #'dw/set-js-indentation))
+)
 
 
 (use-package apheleia
   :config
   (apheleia-global-mode +1))
 
+;; Prettier
+
 (use-package prettier-js
-  :hook ((js2-mode . prettier-js-mode)
-         (typescript-mode . prettier-js-mode)
-         (web-mode . prettier-js-mode))
+;;  :hook ((js2-mode . prettier-js-mode)
+;;         (typescript-mode . prettier-js-mode)
+;;         (web-mode . prettier-js-mode))
   :config
   (setq prettier-js-show-errors nil))
+
 
 ;; HTML
 
 (use-package web-mode
-  :mode "(\\.\\(html?\\|ejs\\|tsx\\|jsx\\)\\'"
+  :mode ("\\.\\(html?\\|ejs\\|tsx\\|jsx\\)\\'")
   :config
-  (setq-default web-mode-code-indent-offset 2)
-  (setq-default web-mode-markup-indent-offset 2)
-  (setq-default web-mode-attribute-indent-offset 2))
-
-(add-to-list 'auto-mode-alist '("\\.html\\'" . web-mode))
-(add-to-list 'auto-mode-alist '("\\.jsx\\'" . web-mode))
-(add-to-list 'auto-mode-alist '("\\.tsx\\'" . web-mode))
-(add-to-list 'auto-mode-alist '("\\.css\\'" . web-mode))
+  (setq-default web-mode-content-types-alist
+                '(("jsx" . "\\.js[x]?\\'")
+                  ("tsx" . "\\.ts[x]?\\'")))
+  (add-to-list 'auto-mode-alist '("\\.html\\'" . web-mode))
+  (add-to-list 'auto-mode-alist '("\\.jsx\\'" . web-mode))
+  (add-to-list 'auto-mode-alist '("\\.tsx\\'" . web-mode))
+  (add-to-list 'auto-mode-alist '("\\.css\\'" . web-mode))
+  )
 
 ;; 1. Start the server with `httpd-start'
 ;; 2. Use `impatient-mode' on any buffer
@@ -475,7 +504,7 @@
 
 (use-package skewer-mode)
 
-;; Prettier
+
 
 (use-package rainbow-mode
   :defer t
@@ -485,13 +514,17 @@
          typescript-mode
          js2-mode
 	       css-mode
+         scss-mode
          html-mode))
 
 (use-package emmet-mode
   :defer t
   :hook (web-mode
          html-mode
-	       css-mode))
+	       css-mode
+         scss-mode
+         js2-mode
+         typescript-mode))
 
 ;; Python
 
@@ -511,19 +544,31 @@
   :config
   (pyvenv-mode 1))
 
-(use-package anaconda-mode
+;; Django, activate in web-mode and python-mode when manage.py is found in parent directories
+
+(use-package django-mode
   :after python-mode
-  :hook ((python-mode . anaconda-mode)
-         (python-mode . anaconda-eldoc-mode)))
+  )
+(defun my/locate-dominating-file-in-parent-dirs (file name)
+    "Find the parent directory containing the specified FILE.
+Search for the file NAME in the parent directories of the current buffer's file."
+    (let ((parent-dir (file-name-directory (directory-file-name file))))
+      (if (file-exists-p (expand-file-name name parent-dir))
+          parent-dir
+        (unless (string= "/" parent-dir)
+          (my/locate-dominating-file-in-parent-dirs parent-dir name)))))
 
-;; Golang
+(defun my/python-django-setup ()
+  (when (my/locate-dominating-file-in-parent-dirs default-directory "manage.py")
+    (django-mode 1)))
 
-(use-package go-mode
-  :mode ("\\.go?\\'" . go-mode)
-  :hook (go-mode . company-mode))
+(add-hook 'python-mode-hook 'my/python-django-setup)
+(defun my/web-mode-django-setup ()
+  (when (my/locate-dominating-file-in-parent-dirs default-directory "manage.py")
+    (setq-local web-mode-engines-alist '(("django" . "\\.html\\'")))
+    (setq-local web-mode-engine "django")))
 
-(use-package company-go
-  :after (go-mode company-mode))
+(add-hook 'web-mode-hook 'my/web-mode-django-setup)
 
 ;; Parinfy for lispy languages
 
@@ -562,8 +607,6 @@
 (use-package smartparens
   :hook (prog-mode . smartparens-mode))
 (require 'smartparens-config)
-
-(add-hook 'prog-mode-hook (lambda() (electric-pair-mode t)))
 
 ;; PDF Tools
 
@@ -617,7 +660,8 @@
 					            (lambda ()
 						            (reftex-mode t)
 						            (flyspell-mode t)
-                        (company-mode t)))
+                        (company-mode t)
+                        (smartparens-mode t)))
 			      )
   )
 
@@ -626,11 +670,7 @@
   :config (company-auctex-init)
   )
 
-
-
 ;; Startup time
-
-;; Make gc pauses faster by decreasing the threshold. ----------------------------------
 
 (defun efs/display-startup-time ()
   (message "Emacs loaded in %s with %d garbage collections."
@@ -641,17 +681,11 @@
 
 (add-hook 'emacs-startup-hook #'efs/display-startup-time)
 
+;; Avoid emacs to add custom-set-variables and custom-set-faces
+
+(setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+(load custom-file t)
+
+;; Make gc pauses faster by decreasing the threshold. ----------------------------------
+
 (setq gc-cons-threshold (* 2 1000 1000))
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(package-selected-packages
-   '(yasnippet ws-butler which-key web-mode vue-mode visual-fill-column use-package tide the-matrix-theme smartparens skewer-mode rainbow-mode rainbow-delimiters pyvenv python-mode prettier-js powershell org-bullets nvm nimbus-theme lsp-ui lsp-pyright lsp-latex lsp-ivy lsp-dart json-mode jedi ivy-rich ivy-prescient impatient-mode iceberg-theme highlight-indentation helpful gnu-elpa forge flx eshell-git-prompt emmet-mode eink-theme doom-themes doom-modeline dired-single dired-open dired-hide-dotfiles counsel-projectile conda company-go company-box company-anaconda command-log-mode borland-blue-theme auto-package-update apheleia all-the-icons-dired add-node-modules-path)))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
