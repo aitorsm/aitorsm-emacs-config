@@ -544,32 +544,6 @@
   :config
   (pyvenv-mode 1))
 
-;; Django, activate in web-mode and python-mode when manage.py is found in parent directories
-
-(use-package django-mode
-  :after python-mode
-  )
-(defun my/locate-dominating-file-in-parent-dirs (file name)
-    "Find the parent directory containing the specified FILE.
-Search for the file NAME in the parent directories of the current buffer's file."
-    (let ((parent-dir (file-name-directory (directory-file-name file))))
-      (if (file-exists-p (expand-file-name name parent-dir))
-          parent-dir
-        (unless (string= "/" parent-dir)
-          (my/locate-dominating-file-in-parent-dirs parent-dir name)))))
-
-(defun my/python-django-setup ()
-  (when (my/locate-dominating-file-in-parent-dirs default-directory "manage.py")
-    (django-mode 1)))
-
-(add-hook 'python-mode-hook 'my/python-django-setup)
-(defun my/web-mode-django-setup ()
-  (when (my/locate-dominating-file-in-parent-dirs default-directory "manage.py")
-    (setq-local web-mode-engines-alist '(("django" . "\\.html\\'")))
-    (setq-local web-mode-engine "django")))
-
-(add-hook 'web-mode-hook 'my/web-mode-django-setup)
-
 ;; Parinfy for lispy languages
 
 (use-package parinfer
@@ -669,6 +643,33 @@ Search for the file NAME in the parent directories of the current buffer's file.
   :after (latex-mode company-mode)
   :config (company-auctex-init)
   )
+
+;; my custom VSCode layout
+
+(defun my/vscode-like-layout ()
+  "Create a VSCode-like layout with the directory tree on the left and the eshell at the bottom."
+  (interactive)
+  (delete-other-windows)
+  (setq my/vscode-like-layout-active t)
+  (let ((main-window (selected-window)))
+    ;; Open treemacs on the left side
+    (treemacs-select-window)
+    (set-window-parameter nil 'window-side 'left)
+    (set-window-parameter nil 'window-slot 0)
+    (set-window-dedicated-p (selected-window) t)
+    ;; Split the main window horizontally for eshell at the bottom
+    (select-window main-window)
+    (split-window-below (floor (* 0.75 (window-height))))
+    (setq main-window (selected-window))
+    (other-window 1)
+    ;; Create an eshell session at the bottom
+    (eshell)
+    (set-window-parameter nil 'window-side 'bottom)
+    (set-window-parameter nil 'window-slot 1)
+    (set-window-dedicated-p (selected-window) t)
+    ;; Select the main code window
+    (select-window main-window)))
+
 
 ;; Startup time
 
