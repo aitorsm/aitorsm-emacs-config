@@ -1,3 +1,4 @@
+
 (setq gc-cons-threshold (* 50 1000 1000))
 
 (setq debug-on-error t)
@@ -6,8 +7,7 @@
 ;; Set default directory
 
 (when (eq system-type 'windows-nt)
-    (setq default-directory "c:/Users/aitor/")
-  )
+  (setq default-directory "c:/Users/aitor/"))
 
 (menu-bar-mode -1)
 (tool-bar-mode -1)
@@ -24,6 +24,9 @@
 (add-to-list 'default-frame-alist '(alpha . (90 . 90)))
 (set-frame-parameter (selected-frame) 'fullscreen 'maximized)
 (add-to-list 'default-frame-alist '(fullscreen . maximized))
+
+(column-number-mode)
+(global-display-line-numbers-mode t)
 
 ;; Tab width --------------------------------------------
 
@@ -82,18 +85,18 @@
 
 (set-face-attribute 'fixed-pitch nil :family "MesloLGS NF" :height 110)
 
-;; Initialize package sources
+;; Initialize package sources (package.el).
 
 (setq package-archives '(("melpa" . "https://melpa.org/packages/")
-			 ("org" . "https://orgmode.org/elpa/")
-			 ("elpa" . "https://elpa.gnu.org/packages/")))
+                         ("melpa-stable" . "https://stable.melpa.org/packages/")
+			                   ("org" . "https://orgmode.org/elpa/")
+			                   ("elpa" . "https://elpa.gnu.org/packages/")))
 
 (package-initialize)
 (unless package-archive-contents
   (package-install 'use-package))
 
-(column-number-mode)
-(global-display-line-numbers-mode t)
+
 
 ;; Initialize use-package on non-Linux platforms
 
@@ -123,6 +126,11 @@
 	 ("C-d" . ivy-reverse-i-search-kill))
   :config
   (ivy-mode 1))
+
+(use-package undo-tree
+  :config
+  (setq undo-tree-auto-save-history nil)
+  (global-undo-tree-mode 1))
 
 (use-package all-the-icons)
 
@@ -263,7 +271,7 @@
   :config (counsel-projectile-mode))
 
 (use-package magit
-  :commands magit-status
+  :bind (("C-x g" . magit-status))
   :custom
   (magit-display-buffer-function #'magit-display-buffer-same-window-excepr-diff-v1))
 
@@ -272,62 +280,76 @@
 
 ;; Org Mode Configuration ------------------------------------------------------
 
-(defun efs/org-mode-setup ()
-  (org-indent-mode)
-  (variable-pitch-mode 1)
-  (visual-line-mode 1))
-
-(defun efs/org-font-setup ()
-  ;; Replace list hyphen with dot
-  (font-lock-add-keywords 'org-mode
-                          '(("^ *\\([-]\\) "
-                             (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
-
-  ;; Set faces for heading levels
-  (dolist (face '((org-level-1 . 1.2)
-                  (org-level-2 . 1.1)
-                  (org-level-3 . 1.05)
-                  (org-level-4 . 1.0)
-                  (org-level-5 . 1.1)
-                  (org-level-6 . 1.1)
-                  (org-level-7 . 1.1)
-                  (org-level-8 . 1.1)))
-    (set-face-attribute (car face) nil :font "MesloLGS NF" :weight 'regular :height (cdr face)))
-
-  ;; Ensure that anything that should be fixed-pitch in Org files appears that way
-  (set-face-attribute 'org-block nil :foreground nil :inherit 'fixed-pitch)
-  (set-face-attribute 'org-code nil   :inherit '(shadow fixed-pitch))
-  (set-face-attribute 'org-table nil   :inherit '(shadow fixed-pitch))
-  (set-face-attribute 'org-verbatim nil :inherit '(shadow fixed-pitch))
-  (set-face-attribute 'org-special-keyword nil :inherit '(font-lock-comment-face fixed-pitch))
-  (set-face-attribute 'org-meta-line nil :inherit '(font-lock-comment-face fixed-pitch))
-  (set-face-attribute 'org-checkbox nil :inherit 'fixed-pitch))
-
 (use-package org
-  :hook (org-mode . efs/org-mode-setup)
-  :config
-  (setq org-ellipsis " ▾")
-  (setq org-latex-listings 'minted)
-  (setq org-latex-packages-alist '(("" "minted")))
-  (setq org-latex-pdf-process
-        '("pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
-        "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
-        "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"))
-  (efs/org-font-setup))
-
-(use-package org-bullets
-  :after org
-  :hook (org-mode . org-bullets-mode)
+  :defer t
+  :hook
+  (org-mode . visual-line-mode) ;; enable word wrapping
+  (org-mode . org-indent-mode) ;; visually indent content based on header hierarchy
   :custom
-  (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
+  ;; Set the default font to a nice monospace font
+  (org-fontify-whole-heading-line t)
+  (org-fontify-done-headline t)
+  (org-fontify-quote-and-verse-blocks t)
+  (org-hide-emphasis-markers t)
+  (org-imenu-depth 8) ;; allow for 8 levels of header indent
+  (org-pretty-entities t) ;; Support TeX characters, e.g. \to
+  (org-tags-column 0) ;; Don't show a separate column for tags
+  (org-use-speed-commands t) ;; Quick access with single-letter speed commands
 
-(defun efs/org-mode-visual-fill ()
-  (setq visual-fill-column-width 100
-        visual-fill-column-center-text t)
-  (visual-fill-column-mode 1))
+  ;; Configure heading appearance
+  (org-bullets-bullet-list '("●" "○" "▸" "◆" "◇" "⟐"))
+  (org-ellipsis " ▼ ")
+  (org-highest-priority ?A)
+  (org-lowest-priority ?F)
+  (org-priority-faces
+   '((?A . (:foreground "#e45649" :weight bold))
+     (?B . (:foreground "#da8548" :weight normal))
+     (?C . (:foreground "#0098dd" :weight normal))
+     (?D . (:foreground "#b9ca4a" :weight normal))
+     (?E . (:foreground "#999999" :weight normal))
+     (?F . (:foreground "#888888" :weight normal))))
+  (org-todo-keyword-faces
+   '(("TODO" . (:foreground "#8888FF" :weight bold))
+     ("NEXT" . (:foreground "#88FF88" :weight bold))
+     ("WAIT" . (:foreground "#FF8800" :weight bold))
+     ("DONE" . (:foreground "#888888" :weight bold))))
+  :config
+  ;; Configure the appearance of source code blocks
+  (setq org-src-fontify-natively t
+        org-src-tab-acts-natively t
+        org-src-preserve-indentation t
+        org-src-window-setup 'current-window
+        org-confirm-babel-evaluate nil)
 
-(use-package visual-fill-column
-  :hook (org-mode . efs/org-mode-visual-fill))
+  ;; Configure the behavior of tables
+  (setq org-table-copy-increment nil) ;; Copying a table should not increment numeric fields
+  (add-hook 'org-mode-hook 'org-table-sticky-header-mode)
+
+  ;; Include some additional useful packages
+
+  (use-package org-bullets
+    :commands org-bullets-mode
+    :hook (org-mode . org-bullets-mode))
+
+  (use-package toc-org
+    :commands toc-org-enable
+    :hook (org-mode . toc-org-enable))
+
+  (use-package org-table-sticky-header
+    :hook (org-mode . org-table-sticky-header-mode))
+
+  (require 'org-tempo)
+
+  (add-to-list 'org-structure-template-alist '("sh" . "src sh"))
+  (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
+  (add-to-list 'org-structure-template-alist '("sc" . "src scheme"))
+  (add-to-list 'org-structure-template-alist '("ts" . "src typescript"))
+  (add-to-list 'org-structure-template-alist '("py" . "src python"))
+  (add-to-list 'org-structure-template-alist '("go" . "src go"))
+  (add-to-list 'org-structure-template-alist '("yaml" . "src yaml"))
+  (add-to-list 'org-structure-template-alist '("json" . "src json"))
+  )
+
 
 ;; shell settings
 
@@ -358,6 +380,13 @@
   :hook (eshell-first-time-mode . efs/configure-eshell)
   :config
   (eshell-git-prompt-use-theme 'powerline))
+
+(use-package eshell-toggle
+  :bind ("C-M-'" . eshell-toggle)
+  :custom
+  (eshell-toggle-size-fraction 3)
+  (eshell-toggle-use-projectile-root t)
+  (eshell-toggle-run-command nil))
 
 ;; Dired
 
@@ -466,22 +495,7 @@
 
   ;; Don't use built-in syntax checking
   (setq js2-mode-show-strict-warnings nil)
-)
-
-
-(use-package apheleia
-  :config
-  (apheleia-global-mode +1))
-
-;; Prettier
-
-(use-package prettier-js
-;;  :hook ((js2-mode . prettier-js-mode)
-;;         (typescript-mode . prettier-js-mode)
-;;         (web-mode . prettier-js-mode))
-  :config
-  (setq prettier-js-show-errors nil))
-
+  )
 
 ;; HTML
 
@@ -503,8 +517,6 @@
 (use-package impatient-mode)
 
 (use-package skewer-mode)
-
-
 
 (use-package rainbow-mode
   :defer t
@@ -600,6 +612,25 @@
 				   'pdf-annot-add-strikeout-markup-annotation))
   )
 
+;; Markdown mode
+
+(use-package markdown-mode
+  :mode "\\.md\\'"
+  :config
+  (setq markdown-command "marked")
+  (defun dw/set-markdown-header-font-sizes ()
+    (dolist (face '((markdown-header-face-1 . 1.2)
+                    (markdown-header-face-2 . 1.1)
+                    (markdown-header-face-3 . 1.0)
+                    (markdown-header-face-4 . 1.0)
+                    (markdown-header-face-5 . 1.0)))
+      (set-face-attribute (car face) nil :weight 'normal :height (cdr face))))
+
+  (defun dw/markdown-mode-hook ()
+    (dw/set-markdown-header-font-sizes))
+
+  (add-hook 'markdown-mode-hook 'dw/markdown-mode-hook))
+
 ;; LaTex
 
 (use-package reftex
@@ -644,9 +675,194 @@
   :config (company-auctex-init)
   )
 
+
+;; ChatGPT queries with gptel
+
+(defun as/read-openai-key()
+  (with-temp-buffer
+    (insert-file-contents "c:/Users/aitor/openai-key.txt")
+    (string-trim (buffer-string))))
+
+(use-package gptel
+  :init
+  (setq-default gptel-model "gpt-3.5-turbo"
+                gptel-api-key #'as/read-openai-key
+                gptel-use-curl nil
+                gptel-default-mode 'org-mode
+                ))
+
+(use-package request)
+
+;; AI assistant
+
+(use-package alert
+  :config
+  (setq alert-default-style 'libnotify)) ; Choose your preferred alert style
+
+(defun as/ai-assistant-create-task (task)
+  "Create a new task in org-mode with the given TASK string."
+  (with-current-buffer (find-file-noselect (concat default-directory "assistant.org"))
+    (goto-char (point-max))
+    (insert (concat "\n* TODO " task))
+    (save-buffer)))
+
+(defun as/ai-assistant-process-task (task)
+  "Send TASK to the GPT API and process the result."
+  (let ((gptel-buffer (generate-new-buffer "gptel-response")))
+    (with-current-buffer gptel-buffer
+      (insert task)
+      (gptel-send))
+    (add-hook 'gptel-response-received-hook
+              (lambda ()
+                (let ((result (gptel--extract-text gptel-buffer)))
+                  (as/ai-assistant-create-task result)
+                  (alert (concat "Task created: " result))
+                  (message "Task created: %s" result)
+                  (kill-buffer gptel-buffer)))
+              nil
+              t)))
+
+
+(defun as/ai-assistant-add-task ()
+  "Ask the user for a task and process it with the AI assistant."
+  (interactive)
+  (let ((task (read-string "Enter your task: ")))
+    (as/ai-assistant-process-task task)))
+
+(setq org-agenda-files (list (concat default-directory "assistant.org")))
+
+;; Funny ChatGPT functions
+
+;; Generate text on prompt
+
+(defun as/gptel-generate-text (prompt)
+  "Generate text using GPT with the given PROMPT."
+  (interactive "sEnter your prompt: ")
+  (let ((gptel-buffer (generate-new-buffer "gptel-text-generation")))
+    (with-current-buffer gptel-buffer
+      (insert prompt)
+      (gptel-send))
+    (add-hook 'gptel-response-received-hook
+              (lambda ()
+                (let ((result (gptel--extract-text gptel-buffer)))
+                  (with-current-buffer (get-buffer-create "*Generated Text*")
+                    (erase-buffer)
+                    (insert result)
+                    (goto-char (point-min))
+                    (display-buffer (current-buffer))))
+                (kill-buffer gptel-buffer))
+              nil
+              t)))
+
+;; Generate documentation
+
+(defun as/gptel-generate-documentation ()
+  (interactive)
+  (let* ((gptel-buffer (generate-new-buffer "gptel-documentation"))
+         (code (if (use-region-p)
+                   (buffer-substring-no-properties (region-beginning) (region-end))
+                 (thing-at-point 'defun))))
+    (with-current-buffer gptel-buffer
+      (insert (as/gptel-generate-documentation-prompt code))
+      (gptel-send))
+    (add-hook 'gptel-response-received-hook
+              (lambda ()
+                (let ((documentation (gptel--extract-text gptel-buffer)))
+                  (save-excursion
+                    (if (use-region-p)
+                        (goto-char (region-beginning))
+                      (beginning-of-defun))
+                    (insert documentation "\n"))
+                  (kill-buffer gptel-buffer)))
+              nil t)))
+
+;; Trnaslation
+
+(defun as/gptel-generate-translation-prompt (text target-language)
+  (format "Translate the following text to %s:\n\n%s\n", target-language, text))
+
+(defun as/gptel-translate-text (text target-language)
+  (interactive "sEnter text to translate: \nsEnter target language: ")
+  (let* ((gptel-buffer (generate-new-buffer "gptel-translation")))
+    (with-current-buffer gptel-buffer
+      (insert (as/gptel-generate-translation-prompt text target-language))
+      (gptel-send))
+    (add-hook 'gptel-response-received-hook
+              (lambda ()
+                (let ((translated-text (gptel--extract-text gptel-buffer)))
+                  (with-current-buffer (get-buffer-create "*Translated Text*")
+                    (erase-buffer)
+                    (insert translated-text)
+                    (display-buffer (current-buffer))))
+                (kill-buffer gptel-buffer))
+              nil t)))
+
+;; Text grammar suggestions
+
+(defun as/gptel-generate-writing-assistance-prompt (text)
+  (format "Please provide grammar, style, and content suggestions for the following text:\n\n%s\n", text))
+
+(defun as/gptel-writing-assistance (text)
+  (interactive "sEnter text for writing assistance: ")
+  (let* ((gptel-buffer (generate-new-buffer "gptel-writing-assistance")))
+    (with-current-buffer gptel-buffer
+      (insert (as/gptel-generate-writing-assistance-prompt text))
+      (gptel-send))
+    (add-hook 'gptel-response-received-hook
+              (lambda ()
+                (let ((suggestions (gptel--extract-text gptel-buffer)))
+                  (with-current-buffer (get-buffer-create "*Writing Suggestions*")
+                    (erase-buffer)
+                    (insert suggestions)
+                    (display-buffer (current-buffer))))
+                (kill-buffer gptel-buffer))
+              nil t)))
+
+;; Draft emails
+
+(defun as/gptel-generate-email-drafting-prompt (recipient subject)
+  (format "Please draft an email to %s with the subject '%s':\n", recipient, subject))
+
+(defun as/gptel-email-draft (recipient subject)
+  (interactive "sEnter recipient's name or email: \nsEnter email subject: ")
+  (let* ((gptel-buffer (generate-new-buffer "gptel-email-draft")))
+    (with-current-buffer gptel-buffer
+      (insert (as/gptel-generate-email-drafting-prompt recipient subject))
+      (gptel-send))
+    (add-hook 'gptel-response-received-hook
+              (lambda ()
+                (let ((draft (gptel--extract-text gptel-buffer)))
+                  (with-current-buffer (get-buffer-create "*Email Draft*")
+                    (erase-buffer)
+                    (insert draft)
+                    (display-buffer (current-buffer))))
+                (kill-buffer gptel-buffer))
+              nil t)))
+
+
+
+;; Calendar for org-agenda
+
+(use-package calfw
+  :disabled
+  :commands cfw:open-org-calendar
+  :config
+  (setq cfw:fchar-junction ?╋
+        cfw:fchar-vertical-line ?┃
+        cfw:fchar-horizontal-line ?━
+        cfw:fchar-left-junction ?┣
+        cfw:fchar-right-junction ?┫
+        cfw:fchar-top-junction ?┯
+        cfw:fchar-top-left-corner ?┏
+        cfw:fchar-top-right-corner ?┓)
+
+  (use-package calfw-org
+    :config
+    (setq cfw:org-agenda-schedule-args '(:timestamp))))
+
 ;; my custom VSCode layout
 
-(defun my/vscode-like-layout ()
+(defun as/vscode-like-layout ()
   "Create a VSCode-like layout with the directory tree on the left and the eshell at the bottom."
   (interactive)
   (delete-other-windows)
