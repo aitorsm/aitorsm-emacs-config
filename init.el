@@ -46,7 +46,7 @@
   (when (derived-mode-p 'js-mode 'typescript-mode 'web-mode)
     (setq js-indent-level 2))
   (when (derived-mode-p 'css-mode 'scss-mode)
-    (setq css-indent-offset 2))
+    (setq css-indent-offset 4))
   (when (derived-mode-p 'web-mode)
     (setq web-mode-code-indent-offset 2)
     (setq web-mode-css-indent-offset 2)
@@ -58,7 +58,7 @@
     (setq-default web-mode-attribute-indent-offset 2)
     )
   (when (derived-mode-p 'python-mode)
-    (setq python-indent-offset 2)))
+    (setq python-indent-offset 4)))
 
 (add-hook 'prog-mode-hook 'my/set-indentation)
 
@@ -428,7 +428,7 @@
 
 (use-package lsp-mode
   :commands lsp
-  :hook ((typescript-mode js2-mode web-mode) . lsp)
+  :hook ((typescript-mode js2-mode web-mode css-mode scss-mode) . lsp)
   :bind (:map lsp-mode-map
          ("TAB" . completion-at-point))
   :custom
@@ -449,6 +449,8 @@
 (use-package lsp-treemacs
   :after lsp-mode
   )
+;; Treemacs git mode set to simple. Does not require python 3
+(setq treemacs-git-mode 'simple)
 
 (setq lsp-ui-sideline-enable nil)
 (setq lsp-ui-sideline-show-hover nil)
