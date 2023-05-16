@@ -132,7 +132,7 @@
   (setq undo-tree-auto-save-history nil)
   (global-undo-tree-mode 1))
 
-(use-package all-the-icons)
+(use-package nerd-icons)
 
 (use-package doom-modeline
   :ensure t
