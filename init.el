@@ -507,6 +507,7 @@
   (setq-default web-mode-content-types-alist
                 '(("jsx" . "\\.js[x]?\\'")
                   ("tsx" . "\\.ts[x]?\\'")))
+  (setq-default web-mode-engines-alist '(("django" . "\\.html\\'")))
   (add-to-list 'auto-mode-alist '("\\.html\\'" . web-mode))
   (add-to-list 'auto-mode-alist '("\\.jsx\\'" . web-mode))
   (add-to-list 'auto-mode-alist '("\\.tsx\\'" . web-mode))
