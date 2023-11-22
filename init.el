@@ -661,6 +661,8 @@
 			      (pdf-tools-install)
 			      (setq TeX-view-program-selection '((output-pdf "PDF Tools"))
 				          TeX-source-correlate-start-server t)
+            (add-to-list 'safe-local-variable-values
+                         '(Tex-command-extra-options . "-shell-escape"))
 			      ;; Update PDF buffers after successful LaTeX runs
 			      (add-hook 'TeX-after-compilation-finished-functions
 					            #'TeX-revert-document-buffer)
