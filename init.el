@@ -1,7 +1,7 @@
 
 (setq gc-cons-threshold (* 50 1000 1000))
 
-(setq debug-on-error t)
+(setq debug-on-error nil)
 
 (setq inhibit-startup-message t)
 ;; Set default directory
@@ -92,10 +92,10 @@
 			                   ("org" . "https://orgmode.org/elpa/")
 			                   ("elpa" . "https://elpa.gnu.org/packages/")))
 
+
 (package-initialize)
 (unless package-archive-contents
   (package-install 'use-package))
-
 
 
 ;; Initialize use-package on non-Linux platforms
@@ -645,7 +645,8 @@
 (setq ispell-program-name "c:/Users/aitor/Dropbox/utils/hunspell/bin/hunspell.exe")
 (setq ispell-local-dictionary "en_US")
 (setq ispell-local-dictionary-alist
-      '(("en_US" "[[:alpha:]]" "[^[:alpha:]]" "[']" nil ("-d" "en_US") nil utf-8)))
+      '(("en_US" "[[:alpha:]]" "[^[:alpha:]]" "[']" nil ("-d" "en_US") nil utf-8)
+        ("es_ES" "[[:alpha:]]" "[^[:alpha:]]" "['’]" nil ("-d" "es_ES") nil utf-8)))
 
 (use-package auto-dictionary
   :ensure t
@@ -662,7 +663,11 @@
 			      (setq TeX-view-program-selection '((output-pdf "PDF Tools"))
 				          TeX-source-correlate-start-server t)
             (add-to-list 'safe-local-variable-values
-                         '(Tex-command-extra-options . "-shell-escape"))
+                         '(TeX-command-extra-options . "-shell-escape"))
+            (add-to-list 'TeX-command-list
+                         '("LaTeX-shell-escape" "pdflatex -shell-escape --synctex=1 %s"
+                           TeX-run-command nil t
+                           :help "Run pdflatex with -shell-escape"))
 			      ;; Update PDF buffers after successful LaTeX runs
 			      (add-hook 'TeX-after-compilation-finished-functions
 					            #'TeX-revert-document-buffer)
@@ -679,6 +684,13 @@
   :after (latex-mode company-mode)
   :config (company-auctex-init)
   )
+
+(defun my/disable-display-line-numbers-for-pdf ()
+  "Disable display line numbers mode in pdf-view-mode."
+  (when (derived-mode-p 'pdf-view-mode)
+    (display-line-numbers-mode -1)))
+
+(add-hook 'pdf-view-mode-hook #'my/disable-display-line-numbers-for-pdf)
 
 
 ;; ChatGPT queries with gptel
@@ -710,6 +722,8 @@
     (set-window-parameter nil 'window-side 'left)
     (set-window-parameter nil 'window-slot 0)
     (set-window-dedicated-p (selected-window) t)
+    ;; Disable line numbers in treemacs
+    (display-line-numbers-mode -1)
     ;; Split the main window horizontally for eshell at the bottom
     (select-window main-window)
     (split-window-below (floor (* 0.75 (window-height))))
