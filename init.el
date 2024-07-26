@@ -490,7 +490,8 @@
   )
 
 (use-package js2-mode
-  :mode "\\.jsx?\\'"
+  :mode (("\\.jsx?\\'" . js2-mode)
+         ("\\.mjs\\'" . js2-mode))
   :config
   ;; Use js2-mode for Node scripts
   (add-to-list 'magic-mode-alist '("#!/usr/bin/env node" . js2-mode))
