@@ -2,6 +2,7 @@
 (setq gc-cons-threshold (* 50 1000 1000))
 
 (setq debug-on-error nil)
+(setq make-backup-files nil)
 
 (setq inhibit-startup-message t)
 ;; Set default directory
