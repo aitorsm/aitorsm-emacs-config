@@ -424,7 +424,7 @@
          ("TAB" . completion-at-point))
   :custom
   (lsp-headerline-breadcrumb-enable nil)
-  (lsp-enable-identation nil)
+  (lsp-enable-indentation nil)
   (lsp-enable-on-type-formatting nil)
   (lsp-eslint-enable nil)
   )
@@ -464,7 +464,7 @@
          ("<tab>" . company-indent-or-complete-common))
   :custom
   (company-minimum-prefix-length 1)
-  (company-idle-delay 0.0))
+  (company-idle-delay 0.2))
 
 (use-package company-box
   :hook (company-mode . company-box-mode))
