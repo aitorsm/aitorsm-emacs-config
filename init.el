@@ -1,4 +1,3 @@
-
 (setq gc-cons-threshold (* 50 1000 1000))
 
 (setq debug-on-error nil)
@@ -39,15 +38,16 @@
 
 
 ;; Prog-mode identation settings
-(defun my/set-indentation ()
+(defun as/set-indentation ()
   "Set the indentation to 2 spaces."
   (setq indent-tabs-mode nil)
   (setq tab-width 2)
   (setq-default tab-width 2)
   (when (derived-mode-p 'js-mode 'typescript-mode 'web-mode)
-    (setq js-indent-level 2))
+    (setq js-indent-level 2)
+    (setq typescript-indent-level 2))
   (when (derived-mode-p 'css-mode 'scss-mode)
-    (setq css-indent-offset 4))
+    (setq css-indent-offset 2))
   (when (derived-mode-p 'web-mode)
     (setq web-mode-code-indent-offset 2)
     (setq web-mode-css-indent-offset 2)
@@ -61,7 +61,7 @@
   (when (derived-mode-p 'python-mode)
     (setq python-indent-offset 4)))
 
-(add-hook 'prog-mode-hook 'my/set-indentation)
+(add-hook 'prog-mode-hook 'as/set-indentation)
 
 
 ;; Enable line numbers for some modes ---------------------------
@@ -85,6 +85,13 @@
 (set-face-attribute 'default nil :family "MesloLGS NF" :height 110)
 
 (set-face-attribute 'fixed-pitch nil :family "MesloLGS NF" :height 110)
+
+;; Support for Unicode Emoji Characters
+
+(when (member "Segoe UI Emoji" (font-family-list))
+  (set-fontset-font t 'emoji "Segoe UI Emoji" nil 'prepend)
+  (set-fontset-font t 'symbol "Segoe UI Emoji" nil 'prepend)
+  (set-fontset-font t 'unicode "Segoe UI Emoji" nil 'prepend))
 
 ;; Initialize package sources (package.el).
 
@@ -477,7 +484,7 @@
   :defer t)
 
 (use-package typescript-mode
-  :mode "\\.ts\\'"
+  :mode ("\\.ts\\'" "\\.mts\\'")
   )
 
 (use-package js2-mode
