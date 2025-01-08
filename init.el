@@ -593,8 +593,13 @@
 ;; Smartparens
 
 (use-package smartparens
-  :hook (prog-mode . smartparens-mode))
-(require 'smartparens-config)
+  :hook (prog-mode . smartparens-mode)
+  :config
+  (require 'smartparens-config)
+  (sp-pair "{" nil :post-handlers '(("||\n[i]" "RET")))
+  (sp-pair "[" nil :post-handlers '(("||\n[i]" "RET")))
+  (sp-pair "(" nil :post-handlers '(("||\n[i]" "RET"))))
+
 
 ;; PDF Tools
 
@@ -684,12 +689,12 @@
   :config (company-auctex-init)
   )
 
-(defun my/disable-display-line-numbers-for-pdf ()
+(defun as/disable-display-line-numbers-for-pdf ()
   "Disable display line numbers mode in pdf-view-mode."
   (when (derived-mode-p 'pdf-view-mode)
     (display-line-numbers-mode -1)))
 
-(add-hook 'pdf-view-mode-hook #'my/disable-display-line-numbers-for-pdf)
+(add-hook 'pdf-view-mode-hook #'as/disable-display-line-numbers-for-pdf)
 
 
 ;; ChatGPT queries with gptel
@@ -714,7 +719,6 @@
   "Create a VSCode-like layout with the directory tree on the left and the eshell at the bottom."
   (interactive)
   (delete-other-windows)
-  (setq my/vscode-like-layout-active t)
   (let ((main-window (selected-window)))
     ;; Open treemacs on the left side
     (treemacs-select-window)
