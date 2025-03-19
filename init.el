@@ -175,6 +175,17 @@
   :config
   (ace-window-display-mode 1))
 
+(use-package avy
+  :ensure t
+  :config
+  (global-set-key (kbd "C-:") 'avy-goto-char)
+  (global-set-key (kbd "C-'") 'avy-goto-char-2)
+  (global-set-key (kbd "C-;") 'avy-goto-char-timer)
+  (global-set-key (kbd "M-g f") 'avy-goto-line)
+  (global-set-key (kbd "M-g w") 'avy-goto-word-1)
+  (global-set-key (kbd "M-g e") 'avy-goto-word-0))
+
+
 (use-package ivy-rich
   :init
   (ivy-rich-mode 1)
@@ -623,8 +634,8 @@
 
 (use-package markdown-mode
   :mode "\\.md\\'"
+  :init (setq markdown-command "c:/libMultiMarkdown-6.7.0/bin/multimarkdown.exe")
   :config
-  (setq markdown-command "marked")
   (defun as/set-markdown-header-font-sizes ()
     (dolist (face '((markdown-header-face-1 . 1.2)
                     (markdown-header-face-2 . 1.1)
@@ -701,17 +712,49 @@
 
 (defun as/read-openai-key()
   (with-temp-buffer
-    (insert-file-contents "c:/Users/aitor/openai-key.txt")
+    (insert-file-contents "c:/Users/aitor/emacs-openai-key.txt")
+    (string-trim (buffer-string))))
+
+(defun as/read-deepseek-key()
+  (with-temp-buffer
+    (insert-file-contents "c:/Users/aitor/emacs-deepseek-key.txt")
     (string-trim (buffer-string))))
 
 (use-package gptel
   :init
-  (setq-default gptel-model "gpt-3.5-turbo"
+  (setq-default gptel-model "gpt-4o"
                 gptel-api-key #'as/read-openai-key
-                gptel-use-curl nil
-                gptel-playback t
-                gptel-default-mode 'org-mode
-                ))
+                gptel-stream t
+                gptel-track-media t)
+  :config
+  ;; DeepSeek offers an OpenAI compatible API
+  (gptel-make-openai "DeepSeek"       ;Any name you want
+    :host "api.deepseek.com"
+    :endpoint "/chat/completions"
+    :stream t
+    :key #'as/read-deepseek-key
+    :models '(deepseek-chat deepseek-coder deepseek-reasoner))
+  
+  (add-hook 'gptel-post-response-functions 'gptel-end-of-response)
+  (defvar gptel-lookup--history nil)
+  (defun gptel-lookup (prompt)
+    (interactive (list (read-string "Ask ChatGPT: " nil gptel-lookup--history)))
+    (when (string= prompt "") (user-error "A prompt is required."))
+    (gptel-request
+        prompt
+      :callback
+      (lambda (response info)
+        (if (not response)
+            (message "gptel-lookup failed with message: %s" (plist-get info :status))
+          (with-current-buffer (get-buffer-create "*gptel-lookup*")
+            (let ((inhibit-read-only t))
+              (erase-buffer)
+              (insert response))
+            (special-mode)
+            (display-buffer (current-buffer)
+                            `((display-buffer-in-side-window)
+                              (side . bottom)
+                              (window-height . ,#'fit-window-to-buffer)))))))))
 
 ;; my custom VSCode layout
 
