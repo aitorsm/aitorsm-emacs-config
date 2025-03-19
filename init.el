@@ -359,7 +359,7 @@
 
 ;; eshell settings
 
-(defun efs/configure-eshell ()
+(defun as/configure-eshell ()
   ;; Save command history when commands are entered
   (add-hook 'eshell-pre-command-hook 'eshell-save-some-history)
   ;; Truncate buffer for performance
@@ -375,7 +375,7 @@
   :after eshell)
 
 (use-package eshell
-  :hook (eshell-first-time-mode . efs/configure-eshell)
+  :hook (eshell-first-time-mode . as/configure-eshell)
   :config
   (eshell-git-prompt-use-theme 'powerline))
 
@@ -743,14 +743,14 @@
 
 ;; Startup time
 
-(defun efs/display-startup-time ()
+(defun as/display-startup-time ()
   (message "Emacs loaded in %s with %d garbage collections."
            (format "%.2f seconds"
                    (float-time
                    (time-subtract after-init-time before-init-time)))
            gcs-done))
 
-(add-hook 'emacs-startup-hook #'efs/display-startup-time)
+(add-hook 'emacs-startup-hook #'as/display-startup-time)
 
 ;; Avoid emacs to add custom-set-variables and custom-set-faces
 
