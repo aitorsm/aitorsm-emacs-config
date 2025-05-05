@@ -14,6 +14,7 @@
 (scroll-bar-mode -1)
 (global-hl-line-mode 1)
 (global-display-line-numbers-mode 1)
+
 (load-theme 'modus-vivendi t)
 
 (recentf-mode 1)
@@ -72,19 +73,22 @@
 
 ;; Disable line numbers for some modes ---------------------------
 (dolist (mode '(org-mode-hook
-                eshell-mode-hook))
+                eshell-mode-hook
+                shell-mode-hook
+                term-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
 ;; Disable line hl-line for some modes
 
 (dolist (mode '(shell-mode-hook
-                eshell-mode-hook))
+                eshell-mode-hook
+                term-mode-hook))
   (add-hook mode (lambda () (setq-local global-hl-line-mode nil))))
 
 ;; Font family
-(set-face-attribute 'default nil :family "MesloLGS NF" :height 110)
+(set-face-attribute 'default nil :family "Iosevka NF" :height 110)
 
-(set-face-attribute 'fixed-pitch nil :family "MesloLGS NF" :height 110)
+(set-face-attribute 'fixed-pitch nil :family "Iosevka NF" :height 110)
 
 ;; Support for Unicode Emoji Characters
 
@@ -104,7 +108,6 @@
 (package-initialize)
 (unless package-archive-contents
   (package-install 'use-package))
-
 
 ;; Initialize use-package on non-Linux platforms
 
@@ -180,7 +183,7 @@
   :config
   (global-set-key (kbd "C-:") 'avy-goto-char)
   (global-set-key (kbd "C-'") 'avy-goto-char-2)
-  (global-set-key (kbd "C-;") 'avy-goto-char-timer)
+  (global-set-key (kbd "C-;") 'avy-goto-char-timer) 
   (global-set-key (kbd "M-g f") 'avy-goto-line)
   (global-set-key (kbd "M-g w") 'avy-goto-word-1)
   (global-set-key (kbd "M-g e") 'avy-goto-word-0))
@@ -248,7 +251,10 @@
 
 
 ;; Set default connection mode to SSH
-(setq tramp-default-method "ssh")
+
+(use-package tramp
+  :config
+  (setq tramp-default-method "ssh"))
 
 ;; Automatically clean whitespace
 
@@ -360,14 +366,20 @@
   )
 
 
-;; shell settings
+;; shell and term settings
 
-(when (eq system-type 'windows-nt)
+(if (eq system-type 'windows-nt)
     (progn
       (setq explicit-shell-file-name "powershell.exe")
       (setq explicit-powershell.exe-args '()))
-  )
+  (setq explicit-shell-file-name "/bin/bash"))
 
+
+
+(use-package term
+  :config
+  (define-key term-raw-map (kbd "M-o") 'ace-window)
+  (define-key term-raw-map (kbd "M-x") 'counsel-M-x))
 ;; eshell settings
 
 (defun as/configure-eshell ()
@@ -404,9 +416,6 @@
   :commands (dired dired-jump)
   :bind (("C-x C-j" . dired-jump))
   :custom ((dired-listing-switches "-agho --group-directories-first")))
-
-(use-package dired-single
-  :after dired)
 
 (use-package all-the-icons-dired
   :hook (dired-mode . all-the-icons-dired-mode))
@@ -634,7 +643,9 @@
 
 (use-package markdown-mode
   :mode "\\.md\\'"
-  :init (setq markdown-command "c:/libMultiMarkdown-6.7.0/bin/multimarkdown.exe")
+  :init (if (eq system-type 'windows-nt)
+            (setq markdown-command "c:/libMultiMarkdown-6.7.0/bin/multimarkdown.exe")
+          (setq markdown-command "/home/asanche7/as_utils/MultiMarkdown-6/build/multimarkdown"))
   :config
   (defun as/set-markdown-header-font-sizes ()
     (dolist (face '((markdown-header-face-1 . 1.2)
@@ -645,7 +656,8 @@
       (set-face-attribute (car face) nil :weight 'normal :height (cdr face))))
 
   (defun as/markdown-mode-hook ()
-    (as/set-markdown-header-font-sizes))
+    (as/set-markdown-header-font-sizes)
+    (display-line-numbers-mode 0))
 
   (add-hook 'markdown-mode-hook 'as/markdown-mode-hook))
 
@@ -657,7 +669,10 @@
   :config
   (setq reftex-cite-prompt-optional-args t)) ;; Prompt for empty optional arguments in cite
 
-(setq ispell-program-name "c:/Users/aitor/Dropbox/utils/hunspell/bin/hunspell.exe")
+(if (eq system-type 'windows-nt)
+    (setq ispell-program-name "c:/Users/aitor/Dropbox/utils/hunspell/bin/hunspell.exe")
+  (setq ispell-program-name "/usr/bin/hunspell" ))
+
 (setq ispell-local-dictionary "en_US")
 (setq ispell-local-dictionary-alist
       '(("en_US" "[[:alpha:]]" "[^[:alpha:]]" "[']" nil ("-d" "en_US") nil utf-8)
@@ -710,31 +725,28 @@
 
 ;; ChatGPT queries with gptel
 
-(defun as/read-openai-key()
+(defun as/read-openai-key ()
   (with-temp-buffer
-    (insert-file-contents "c:/Users/aitor/emacs-openai-key.txt")
+    (if (eq system-type 'windows-nt)
+        (insert-file-contents "c:/Users/aitor/emacs-openai-key.txt")
+      (insert-file-contents "/home/asanche7/as_utils/emacs-openai-key.txt"))
     (string-trim (buffer-string))))
 
-(defun as/read-deepseek-key()
+(defun as/read-deepseek-key ()
   (with-temp-buffer
-    (insert-file-contents "c:/Users/aitor/emacs-deepseek-key.txt")
+    (if (eq system-type 'windows-nt)
+        (insert-file-contents "c:/Users/aitor/emacs-deepseek-key.txt")
+      (insert-file-contents "/home/asanche7/as_utils/emacs-deepseek-key.txt"))
     (string-trim (buffer-string))))
 
 (use-package gptel
+  :ensure t :defer t
   :init
-  (setq-default gptel-model "gpt-4o"
+  (setq-default gptel-model 'gpt-4o
                 gptel-api-key #'as/read-openai-key
                 gptel-stream t
                 gptel-track-media t)
   :config
-  ;; DeepSeek offers an OpenAI compatible API
-  (gptel-make-openai "DeepSeek"       ;Any name you want
-    :host "api.deepseek.com"
-    :endpoint "/chat/completions"
-    :stream t
-    :key #'as/read-deepseek-key
-    :models '(deepseek-chat deepseek-coder deepseek-reasoner))
-  
   (add-hook 'gptel-post-response-functions 'gptel-end-of-response)
   (defvar gptel-lookup--history nil)
   (defun gptel-lookup (prompt)
