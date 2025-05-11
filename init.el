@@ -375,7 +375,6 @@
   (setq explicit-shell-file-name "/bin/bash"))
 
 
-
 (use-package term
   :config
   (define-key term-raw-map (kbd "M-o") 'ace-window)
@@ -805,7 +804,14 @@
                    (time-subtract after-init-time before-init-time)))
            gcs-done))
 
+(defun as/startup-in-term ()
+  "Start Emacs in a term buffer"
+  (when (eq system-type 'gnu/linux)
+    (ansi-term "/bin/bash")))
+
 (add-hook 'emacs-startup-hook #'as/display-startup-time)
+(add-hook 'emacs-startup-hook #'as/startup-in-term)
+
 
 ;; Avoid emacs to add custom-set-variables and custom-set-faces
 
