@@ -256,6 +256,12 @@
   :config
   (setq tramp-default-method "ssh"))
 
+;; Docker
+
+(use-package docker
+  :ensure t
+  :bind ("C-c d" . docker))
+
 ;; Automatically clean whitespace
 
 (use-package ws-butler
@@ -637,6 +643,11 @@
 		(define-key pdf-view-mode-map (kbd "s")
 				   'pdf-annot-add-strikeout-markup-annotation))
   )
+
+;; Yaml
+
+(use-package yaml-mode
+  :mode "\\.yaml\\'")
 
 ;; Markdown mode
 
