@@ -4,8 +4,8 @@
 (setq make-backup-files nil)
 
 (setq inhibit-startup-message t)
-;; Set default directory
 
+;; Set default directory for Windows, for Linux is /home/aitor/
 (when (eq system-type 'windows-nt)
   (setq default-directory "c:/Users/aitor/"))
 
@@ -75,20 +75,24 @@
 (dolist (mode '(org-mode-hook
                 eshell-mode-hook
                 shell-mode-hook
-                term-mode-hook))
+                term-mode-hook
+                vterm-mode-hook
+                doc-view-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
 ;; Disable line hl-line for some modes
 
 (dolist (mode '(shell-mode-hook
                 eshell-mode-hook
-                term-mode-hook))
+                term-mode-hook
+                vterm-mode-hook
+                doc-view-mode-hook))
   (add-hook mode (lambda () (setq-local global-hl-line-mode nil))))
 
 ;; Font family
-(set-face-attribute 'default nil :family "Iosevka NF" :height 110)
+(set-face-attribute 'default nil :family "Iosevka NF" :height 120)
 
-(set-face-attribute 'fixed-pitch nil :family "Iosevka NF" :height 110)
+(set-face-attribute 'fixed-pitch nil :family "Iosevka NF" :height 120)
 
 ;; Support for Unicode Emoji Characters
 
@@ -249,6 +253,17 @@
 
 (use-package hydra) ;; A package for transitient keybindings
 
+;; vterm
+
+(use-package vterm
+  :ensure t)
+
+(use-package multi-vterm
+  :ensure t
+  :after vterm
+  :bind (("C-c v t" . multi-vterm)
+         ("C-c v p" . multi-vterm-prev)
+         ("C-c v n" . multi-vterm-next)))
 
 ;; Set default connection mode to SSH
 
@@ -385,6 +400,7 @@
   :config
   (define-key term-raw-map (kbd "M-o") 'ace-window)
   (define-key term-raw-map (kbd "M-x") 'counsel-M-x))
+
 ;; eshell settings
 
 (defun as/configure-eshell ()
@@ -458,8 +474,7 @@
   (lsp-headerline-breadcrumb-enable nil)
   (lsp-enable-indentation nil)
   (lsp-enable-on-type-formatting nil)
-  (lsp-eslint-enable nil)
-  )
+  (lsp-eslint-enable nil))
 
 (use-package lsp-ui
   :hook (lsp-mode . lsp-ui-mode)
@@ -470,8 +485,8 @@
   (lsp-ui-doc-show))
 
 (use-package lsp-treemacs
-  :after lsp-mode
-  )
+  :after lsp-mode)
+
 ;; Treemacs git mode set to simple. Does not require python 3
 (setq treemacs-git-mode 'simple)
 
@@ -653,9 +668,10 @@
 
 (use-package markdown-mode
   :mode "\\.md\\'"
+  ;; Set the markdown compiler
   :init (if (eq system-type 'windows-nt)
             (setq markdown-command "c:/libMultiMarkdown-6.7.0/bin/multimarkdown.exe")
-          (setq markdown-command "/home/asanche7/as_utils/MultiMarkdown-6/build/multimarkdown"))
+          (setq markdown-command "/home/aitor/utils/MultiMarkdown-6/build/multimarkdown"))
   :config
   (defun as/set-markdown-header-font-sizes ()
     (dolist (face '((markdown-header-face-1 . 1.2)
@@ -722,16 +738,7 @@
 
 (use-package company-auctex
   :after (latex-mode company-mode)
-  :config (company-auctex-init)
-  )
-
-(defun as/disable-display-line-numbers-for-pdf ()
-  "Disable display line numbers mode in pdf-view-mode."
-  (when (derived-mode-p 'pdf-view-mode)
-    (display-line-numbers-mode -1)))
-
-(add-hook 'pdf-view-mode-hook #'as/disable-display-line-numbers-for-pdf)
-
+  :config (company-auctex-init))
 
 ;; ChatGPT queries with gptel
 
@@ -739,14 +746,14 @@
   (with-temp-buffer
     (if (eq system-type 'windows-nt)
         (insert-file-contents "c:/Users/aitor/emacs-openai-key.txt")
-      (insert-file-contents "/home/asanche7/as_utils/emacs-openai-key.txt"))
+      (insert-file-contents "/home/aitor/Documents/keys/emacs-openai-key.txt"))
     (string-trim (buffer-string))))
 
 (defun as/read-deepseek-key ()
   (with-temp-buffer
     (if (eq system-type 'windows-nt)
         (insert-file-contents "c:/Users/aitor/emacs-deepseek-key.txt")
-      (insert-file-contents "/home/asanche7/as_utils/emacs-deepseek-key.txt"))
+      (insert-file-contents "/home/aitor/Documents/keys/emacs-deepseek-key.txt"))
     (string-trim (buffer-string))))
 
 (use-package gptel
@@ -778,34 +785,6 @@
                               (side . bottom)
                               (window-height . ,#'fit-window-to-buffer)))))))))
 
-;; my custom VSCode layout
-
-(defun as/vscode-like-layout ()
-  "Create a VSCode-like layout with the directory tree on the left and the eshell at the bottom."
-  (interactive)
-  (delete-other-windows)
-  (let ((main-window (selected-window)))
-    ;; Open treemacs on the left side
-    (treemacs-select-window)
-    (set-window-parameter nil 'window-side 'left)
-    (set-window-parameter nil 'window-slot 0)
-    (set-window-dedicated-p (selected-window) t)
-    ;; Disable line numbers in treemacs
-    (display-line-numbers-mode -1)
-    ;; Split the main window horizontally for eshell at the bottom
-    (select-window main-window)
-    (split-window-below (floor (* 0.75 (window-height))))
-    (setq main-window (selected-window))
-    (other-window 1)
-    ;; Create an eshell session at the bottom
-    (eshell)
-    (set-window-parameter nil 'window-side 'bottom)
-    (set-window-parameter nil 'window-slot 1)
-    (set-window-dedicated-p (selected-window) t)
-    ;; Select the main code window
-    (select-window main-window)))
-
-
 ;; Startup time
 
 (defun as/display-startup-time ()
@@ -815,13 +794,8 @@
                    (time-subtract after-init-time before-init-time)))
            gcs-done))
 
-(defun as/startup-in-term ()
-  "Start Emacs in a term buffer"
-  (when (eq system-type 'gnu/linux)
-    (ansi-term "/bin/bash")))
 
 (add-hook 'emacs-startup-hook #'as/display-startup-time)
-(add-hook 'emacs-startup-hook #'as/startup-in-term)
 
 
 ;; Avoid emacs to add custom-set-variables and custom-set-faces
