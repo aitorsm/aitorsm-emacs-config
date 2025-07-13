@@ -102,7 +102,7 @@
   (set-fontset-font t 'unicode "Segoe UI Emoji" nil 'prepend))
 
 ;; Initialize package sources (package.el).
-
+(require 'package)
 (setq package-archives '(("melpa" . "https://melpa.org/packages/")
                          ("melpa-stable" . "https://stable.melpa.org/packages/")
 			                   ("org" . "https://orgmode.org/elpa/")
@@ -120,6 +120,16 @@
 
 (require 'use-package)
 (setq use-package-always-ensure t)
+
+;; syncronize PATH wiht that defined in bashrc
+
+(use-package exec-path-from-shell
+  :if (memq window-system '(mac ns x))
+  :config
+  ;; Set the PATH variable from the shell
+  (setq exec-path-from-shell-variables '("PATH" "MANPATH" "PYTHONPATH"))
+  ;; Initialize exec-path-from-shell
+  (exec-path-from-shell-initialize))
 
 ;; ivy mode for lower buffer completion
 
@@ -249,14 +259,22 @@
   ([remap describe-variable] . counsel-describe-variable)
   ([remap describe-key] . helpful-key))
 
-;; Set evil mode if you want
+;; Transient keybindings
 
 (use-package hydra) ;; A package for transitient keybindings
+(use-package ivy-hydra
+  :after hydra
+  :config
+  (setq ivy-hydra-virtual-buffers t)
+  (setq ivy-hydra-virtual-buffers-display-style 'one-line))
+(use-package transient) ;; A package for transient keybindings
 
 ;; vterm
 
 (use-package vterm
-  :ensure t)
+  :ensure t
+  :config
+  (setq vterm-timer-delay nil))
 
 (use-package multi-vterm
   :ensure t
@@ -296,7 +314,7 @@
   :diminish projectile-mode
   :config (projectile-mode)
   :bind-keymap
-  ("C-c p" . projectile-command-map)
+  ("C-c o" . projectile-command-map)
   :init
   (when (file-directory-p "~/Projects/Code")
     (setq projectile-project-search-path '("~/Projects/Code")))
@@ -306,7 +324,10 @@
   :after projectile
   :config (counsel-projectile-mode))
 
+;; Magit
+
 (use-package magit
+  :after transient
   :bind (("C-x g" . magit-status))
   :custom
   (magit-display-buffer-function #'magit-display-buffer-same-window-excepr-diff-v1))
@@ -521,7 +542,8 @@
 ;; Typescript and javascript ---------------------------------
 
 (use-package nvm
-  :defer t)
+  :config
+  (nvm-use "24.3.0"))
 
 (use-package typescript-mode
   :mode ("\\.ts\\'" "\\.mts\\'")
@@ -740,7 +762,7 @@
   :after (latex-mode company-mode)
   :config (company-auctex-init))
 
-;; ChatGPT queries with gptel
+;; AI tools ------------------------------------------------------------
 
 (defun as/read-openai-key ()
   (with-temp-buffer
@@ -754,6 +776,13 @@
     (if (eq system-type 'windows-nt)
         (insert-file-contents "c:/Users/aitor/emacs-deepseek-key.txt")
       (insert-file-contents "/home/aitor/Documents/keys/emacs-deepseek-key.txt"))
+    (string-trim (buffer-string))))
+
+(defun as/read-anthropic-key ()
+  (with-temp-buffer
+    (if (eq system-type 'windows-nt)
+        (insert-file-contents "c:/Users/aitor/emacs-anthropic-key.txt")
+      (insert-file-contents "/home/aitor/Documents/keys/emacs-anthropic-key.txt"))
     (string-trim (buffer-string))))
 
 (use-package gptel
@@ -784,6 +813,36 @@
                             `((display-buffer-in-side-window)
                               (side . bottom)
                               (window-height . ,#'fit-window-to-buffer)))))))))
+
+(use-package copilot
+  :config
+  (setq copilot-log-max 0)
+  (setq copilot-idle-delay 0.5)
+  (add-to-list 'copilot-indentation-alist '(prog-mode 2))
+  (add-to-list 'copilot-indentation-alist '(org-mode 2))
+  (add-to-list 'copilot-indentation-alist '(text-mode 2))
+  (add-to-list 'copilot-indentation-alist '(closure-mode 2))
+  (add-to-list 'copilot-indentation-alist '(emacs-lisp-mode 2))
+  :bind
+  ("M-/" . copilot-complete)
+  ("C-c f". copilot-accept-completion)
+  ("C-c n" . copilot-next-completion)
+  ("C-c p" . copilot-previous-completion)
+  ("C-c l" . copilot-accept-line)
+  ("C-c m" . copilot-accept-completion-by-word)
+  :hook (prog-mode . copilot-mode))
+
+
+(use-package aidermacs
+  :bind (("C-c a" . aidermacs-transient-menu))
+  :config
+  (setenv "ANTHROPIC_API_KEY" (as/read-anthropic-key))
+  (setenv "DEEPSEEK_API_KEY" (as/read-deepseek-key))
+  (setenv "OPENAI_API_KEY" (as/read-openai-key))
+  :custom
+  (aidermacs-default-chat-mode 'architect)
+  (aidermacs-default-model "sonnet")
+  (aidermacs-backend 'vterm))
 
 ;; Startup time
 
