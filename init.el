@@ -5,7 +5,7 @@
 
 (setq inhibit-startup-message t)
 
-;; Set default directory for Windows, for Linux is /home/aitor/
+;; Set default directory for Windows, for Linux is ~/
 (when (eq system-type 'windows-nt)
   (setq default-directory "c:/Users/aitor/"))
 
@@ -31,38 +31,15 @@
 
 ;; Tab width --------------------------------------------
 
-(setq-default tab-width 2)
+;; Use spaces instead of tabs for indentation in programming modes
+(add-hook 'prog-mode-hook (lambda ()
+                            (setq tab-width 2)
+                            (setq indent-tabs-mode nil)))
 
-;; Use spaces instead of tabs for indentation
-
-(setq-default indent-tabs-mode nil)
-
-
-;; Prog-mode identation settings
-(defun as/set-indentation ()
-  "Set the indentation to 2 spaces."
-  (setq indent-tabs-mode nil)
-  (setq tab-width 2)
-  (setq-default tab-width 2)
-  (when (derived-mode-p 'js-mode 'typescript-mode 'web-mode)
-    (setq js-indent-level 2)
-    (setq typescript-indent-level 2))
-  (when (derived-mode-p 'css-mode 'scss-mode)
-    (setq css-indent-offset 2))
-  (when (derived-mode-p 'web-mode)
-    (setq web-mode-code-indent-offset 2)
-    (setq web-mode-css-indent-offset 2)
-    (setq web-mode-markup-indent-offset 2)
-    (setq web-mode-attribute-indent-offset 2)
-    (setq-default web-mode-code-indent-offset 2)
-    (setq-default web-mode-css-indent-offset 2)
-    (setq-default web-mode-markup-indent-offset 2)
-    (setq-default web-mode-attribute-indent-offset 2)
-    )
-  (when (derived-mode-p 'python-mode)
-    (setq python-indent-offset 4)))
-
-(add-hook 'prog-mode-hook 'as/set-indentation)
+;; Mode-specific indentation settings
+(add-hook 'css-mode-hook (lambda () (setq css-indent-offset 2)))
+(add-hook 'scss-mode-hook (lambda () (setq css-indent-offset 2)))
+(add-hook 'python-mode-hook (lambda () (setq python-indent-offset 4)))
 
 
 ;; Enable line numbers for some modes ---------------------------
@@ -101,27 +78,28 @@
   (set-fontset-font t 'symbol "Segoe UI Emoji" nil 'prepend)
   (set-fontset-font t 'unicode "Segoe UI Emoji" nil 'prepend))
 
-;; Initialize package sources (package.el).
-(require 'package)
-(setq package-archives '(("melpa" . "https://melpa.org/packages/")
-                         ("melpa-stable" . "https://stable.melpa.org/packages/")
-			                   ("org" . "https://orgmode.org/elpa/")
-			                   ("elpa" . "https://elpa.gnu.org/packages/")))
+;; Initialize straight.el
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+      (bootstrap-version 6))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
 
+;; Install use-package via straight
+(straight-use-package 'use-package)
 
-(package-initialize)
-(unless package-archive-contents
-  (package-install 'use-package))
+;; Configure use-package to use straight.el by default
+(use-package straight
+  :custom
+  (straight-use-package-by-default t))
 
-;; Initialize use-package on non-Linux platforms
-
-(unless (package-installed-p 'use-package)
-  (package-install 'use-package))
-
-(require 'use-package)
-(setq use-package-always-ensure t)
-
-;; syncronize PATH wiht that defined in bashrc
 
 (use-package exec-path-from-shell
   :if (memq window-system '(mac ns x))
@@ -133,7 +111,7 @@
 
 ;; ivy mode for lower buffer completion
 
-(use-package swiper :ensure t)
+(use-package swiper)
 (use-package ivy
   :diminish
   :bind (("C-s" . swiper)
@@ -159,10 +137,53 @@
 
 (use-package nerd-icons)
 
-(use-package doom-modeline
-  :ensure t
-  :init (doom-modeline-mode 1)
-  :custom ((doom-modeline-height 15)))
+;; Modeline configuration - Enhanced built-in modeline (ACTIVE)
+(setq modus-themes-mode-line '(accented borderless padded))
+
+;; Configure time display format
+(setq display-time-format "%a %e %b, %H:%M   ")
+(setq display-time-default-load-average nil)  ; Don't show load average
+  
+;; Minimalistic modeline
+(setq-default mode-line-format
+              '("%e"
+                mode-line-front-space
+                
+                ;; Buffer name with icon
+                (:eval (concat " "
+                               (if (fboundp 'nerd-icons-icon-for-buffer)
+                                   (nerd-icons-icon-for-buffer)
+                                 "")
+                               " "))
+                mode-line-buffer-identification
+                
+                ;; Simple modified indicator (no red dot)
+                (:eval (when (buffer-modified-p) " [+]"))
+                
+                ;; Major mode (no icon)
+                " "
+                mode-name
+                
+                ;; Git branch (simplified)
+                (:eval (when (and (fboundp 'magit-get-current-branch)
+                                  (magit-get-current-branch))
+                         (concat " (" (magit-get-current-branch) ")")))
+                
+                ;; Line/column info
+                " %l:%c "
+                
+                ;; Percentage through buffer
+                "[%p]"
+                
+                ;; Right-align the time/date
+                (:eval (propertize " " 'display `(space :align-to (- right-margin 
+                                                                     ,(length (format-time-string display-time-format))))))
+                
+                ;; Date/time at the right
+                (:eval (format-time-string display-time-format))
+                
+                mode-line-end-spaces))
+
 
 (use-package rainbow-delimiters
   :hook (prog-mode . rainbow-delimiters-mode))
@@ -193,7 +214,6 @@
   (ace-window-display-mode 1))
 
 (use-package avy
-  :ensure t
   :config
   (global-set-key (kbd "C-:") 'avy-goto-char)
   (global-set-key (kbd "C-'") 'avy-goto-char-2)
@@ -247,9 +267,7 @@
   :config
   (ivy-prescient-mode 1))
 
-
 (use-package helpful
-  :ensure t
   :custom
   (counsel-describe-function-function #'helpful-callable)
   (counsel-describe-variable-function #'helpful-variable)
@@ -272,12 +290,10 @@
 ;; vterm
 
 (use-package vterm
-  :ensure t
   :config
   (setq vterm-timer-delay nil))
 
 (use-package multi-vterm
-  :ensure t
   :after vterm
   :bind (("C-c v t" . multi-vterm)
          ("C-c v p" . multi-vterm-prev)
@@ -292,7 +308,6 @@
 ;; Docker
 
 (use-package docker
-  :ensure t
   :bind ("C-c d" . docker))
 
 ;; Automatically clean whitespace
@@ -316,8 +331,8 @@
   :bind-keymap
   ("C-c o" . projectile-command-map)
   :init
-  (when (file-directory-p "~/Projects/Code")
-    (setq projectile-project-search-path '("~/Projects/Code")))
+  (when (file-directory-p "~/Projects")
+    (setq projectile-project-search-path '("~/Projects")))
   (setq projectile-switch-project-action #'projectile-dired))
 
 (use-package counsel-projectile
@@ -334,79 +349,6 @@
 
 (use-package forge
   :after magit)
-
-;; Org Mode Configuration ------------------------------------------------------
-
-(use-package org
-  :defer t
-  :hook
-  (org-mode . visual-line-mode) ;; enable word wrapping
-  (org-mode . org-indent-mode) ;; visually indent content based on header hierarchy
-  :custom
-  ;; Set the default font to a nice monospace font
-  (org-fontify-whole-heading-line t)
-  (org-fontify-done-headline t)
-  (org-fontify-quote-and-verse-blocks t)
-  (org-hide-emphasis-markers t)
-  (org-imenu-depth 8) ;; allow for 8 levels of header indent
-  (org-pretty-entities t) ;; Support TeX characters, e.g. \to
-  (org-tags-column 0) ;; Don't show a separate column for tags
-  (org-use-speed-commands t) ;; Quick access with single-letter speed commands
-
-  ;; Configure heading appearance
-  (org-bullets-bullet-list '("●" "○" "▸" "◆" "◇" "⟐"))
-  (org-ellipsis " ▼ ")
-  (org-highest-priority ?A)
-  (org-lowest-priority ?F)
-  (org-priority-faces
-   '((?A . (:foreground "#e45649" :weight bold))
-     (?B . (:foreground "#da8548" :weight normal))
-     (?C . (:foreground "#0098dd" :weight normal))
-     (?D . (:foreground "#b9ca4a" :weight normal))
-     (?E . (:foreground "#999999" :weight normal))
-     (?F . (:foreground "#888888" :weight normal))))
-  (org-todo-keyword-faces
-   '(("TODO" . (:foreground "#8888FF" :weight bold))
-     ("NEXT" . (:foreground "#88FF88" :weight bold))
-     ("WAIT" . (:foreground "#FF8800" :weight bold))
-     ("DONE" . (:foreground "#888888" :weight bold))))
-  :config
-  ;; Configure the appearance of source code blocks
-  (setq org-src-fontify-natively t
-        org-src-tab-acts-natively t
-        org-src-preserve-indentation t
-        org-src-window-setup 'current-window
-        org-confirm-babel-evaluate nil)
-
-  ;; Configure the behavior of tables
-  (setq org-table-copy-increment nil) ;; Copying a table should not increment numeric fields
-  (add-hook 'org-mode-hook 'org-table-sticky-header-mode)
-
-  ;; Include some additional useful packages
-
-  (use-package org-bullets
-    :commands org-bullets-mode
-    :hook (org-mode . org-bullets-mode))
-
-  (use-package toc-org
-    :commands toc-org-enable
-    :hook (org-mode . toc-org-enable))
-
-  (use-package org-table-sticky-header
-    :hook (org-mode . org-table-sticky-header-mode))
-
-  (require 'org-tempo)
-
-  (add-to-list 'org-structure-template-alist '("sh" . "src sh"))
-  (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
-  (add-to-list 'org-structure-template-alist '("sc" . "src scheme"))
-  (add-to-list 'org-structure-template-alist '("ts" . "src typescript"))
-  (add-to-list 'org-structure-template-alist '("py" . "src python"))
-  (add-to-list 'org-structure-template-alist '("go" . "src go"))
-  (add-to-list 'org-structure-template-alist '("yaml" . "src yaml"))
-  (add-to-list 'org-structure-template-alist '("json" . "src json"))
-  )
-
 
 ;; shell and term settings
 
@@ -453,11 +395,13 @@
 
 ;; Dired
 
-(use-package dired
-  :ensure nil
-  :commands (dired dired-jump)
-  :bind (("C-x C-j" . dired-jump))
-  :custom ((dired-listing-switches "-agho --group-directories-first")))
+(require 'dired)  ;; Ensure dired is loaded
+
+;; Keybinding for dired-jump
+(define-key global-map (kbd "C-x C-j") 'dired-jump)
+
+;; Custom settings for dired
+(setq dired-listing-switches "-agho --group-directories-first")
 
 (use-package all-the-icons-dired
   :hook (dired-mode . all-the-icons-dired-mode))
@@ -484,11 +428,27 @@
   (auto-package-update-maybe)
   (auto-package-update-at-time "09:00"))
 
+;; Tree-sitter configuration --------------------------------------------
+
+(setq treesit-language-source-alist
+   '((clojure "https://github.com/sogaiu/tree-sitter-clojure")
+     (elisp "https://github.com/Wilfred/tree-sitter-elisp")
+     (html "https://github.com/tree-sitter/tree-sitter-html")
+     (javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
+     (json "https://github.com/tree-sitter/tree-sitter-json")
+     (haskell "https://github.com/tree-sitter/haskell-tree-sitter")
+     (markdown "https://github.com/ikatyang/tree-sitter-markdown")
+     (python "https://github.com/tree-sitter/py-tree-sitter")
+     (java "https://github.com/serenadeai/java-tree-sitter")
+     (css "https://github.com/tree-sitter/tree-sitter-css")
+     (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
+     (node "https://github.com/tree-sitter/node-tree-sitter")))
+
 ;; lsp-mode and company-mode configuration ----------------------------------------
 
 (use-package lsp-mode
   :commands lsp
-  :hook ((typescript-mode js2-mode web-mode css-mode scss-mode) . lsp)
+  :hook ((typescript-ts-mode js-ts-mode typescript-mode js2-mode web-mode css-ts-mode css-mode scss-mode) . lsp)
   :bind (:map lsp-mode-map
          ("TAB" . completion-at-point))
   :custom
@@ -532,7 +492,9 @@
          ("<tab>" . company-indent-or-complete-common))
   :custom
   (company-minimum-prefix-length 1)
-  (company-idle-delay 0.2))
+  (company-idle-delay 0.2)
+  :config
+  (add-to-list 'company-backends 'company-yasnippet))
 
 (use-package company-box
   :hook (company-mode . company-box-mode))
@@ -545,35 +507,41 @@
   :config
   (nvm-use "24.3.0"))
 
-(use-package typescript-mode
-  :mode ("\\.ts\\'" "\\.mts\\'")
-  )
+;; Use tree-sitter modes for JavaScript and typescript
+(add-to-list 'auto-mode-alist '("\\.js\\'" . js-ts-mode))
+(add-to-list 'auto-mode-alist '("\\.cjs\\'" . js-ts-mode))
+(add-to-list 'auto-mode-alist '("\\.mjs\\'" . js-ts-mode))
+(add-to-list 'auto-mode-alist '("\\.jsx\\'" . js-ts-mode))
+(add-to-list 'magic-mode-alist '("#!/usr/bin/env node" . js-ts-mode))
 
-(use-package js2-mode
-  :mode (("\\.jsx?\\'" . js2-mode)
-         ("\\.mjs\\'" . js2-mode))
-  :config
-  ;; Use js2-mode for Node scripts
-  (add-to-list 'magic-mode-alist '("#!/usr/bin/env node" . js2-mode))
+;; Use tree-sitter modes for TypeScript
+(add-to-list 'auto-mode-alist '("\\.ts\\'" . typescript-ts-mode))
+(add-to-list 'auto-mode-alist '("\\.tsx\\'" . tsx-ts-mode))
 
-  ;; Don't use built-in syntax checking
-  (setq js2-mode-show-strict-warnings nil)
-  )
+;; Prettier integration
+
+(use-package prettier-js
+  :hook ((js-ts-mode . prettier-js-mode)
+         (typescript-ts-mode . prettier-js-mode)
+         (tsx-ts-mode . prettier-js-mode)
+         (typescript-mode . prettier-js-mode)
+         (web-mode . prettier-js-mode)))
 
 ;; HTML
 
 (use-package web-mode
-  :mode ("\\.\\(html?\\|ejs\\|tsx\\|jsx\\)\\'")
+  :mode ("\\.\\(html?\\|ejs\\)\\'")
   :config
-  (setq-default web-mode-content-types-alist
-                '(("jsx" . "\\.js[x]?\\'")
-                  ("tsx" . "\\.ts[x]?\\'")))
   (setq-default web-mode-engines-alist '(("django" . "\\.html\\'")))
   (add-to-list 'auto-mode-alist '("\\.html\\'" . web-mode))
-  (add-to-list 'auto-mode-alist '("\\.jsx\\'" . web-mode))
-  (add-to-list 'auto-mode-alist '("\\.tsx\\'" . web-mode))
   (add-to-list 'auto-mode-alist '("\\.css\\'" . web-mode))
-  )
+  (setq web-mode-markup-indent-offset 2
+        web-mode-css-indent-offset 2
+        web-mode-code-indent-offset 2
+        web-mode-attribute-indent-offset 2
+        web-mode-enable-auto-closing t
+        web-mode-enable-auto-quoting t
+        web-mode-enable-css-colorization t))
 
 ;; 1. Start the server with `httpd-start'
 ;; 2. Use `impatient-mode' on any buffer
@@ -587,8 +555,10 @@
   :hook (org-mode
          emacs-lisp-mode
          web-mode
+         typescript-ts-mode
+         tsx-ts-mode
+         js-ts-mode
          typescript-mode
-         js2-mode
 	       css-mode
          scss-mode
          html-mode))
@@ -599,13 +569,18 @@
          html-mode
 	       css-mode
          scss-mode
-         js2-mode
-         typescript-mode))
+         js-ts-mode
+         tsx-ts-mode
+         typescript-ts-mode
+         typescript-mode)
+  :config
+  (add-to-list 'emmet-jsx-major-modes 'js-ts-mode)
+  (add-to-list 'emmet-jsx-major-modes 'tsx-ts-mode)
+  (add-to-list 'emmet-jsx-major-modes 'typescript-ts-mode))
 
 ;; Python
 
 (use-package python-mode
-  :ensure t
   :hook (python-mode . lsp-deferred)
   :custom
   ;; NOTE: Set these if Python 3 is called "python3" on your system!
@@ -652,6 +627,12 @@
   :config
   (yas-reload-all))
 
+(use-package yasnippet-snippets
+  :after yasnippet)
+
+(use-package react-snippets
+  :after yasnippet)
+
 ;; Smartparens
 
 (use-package smartparens
@@ -693,7 +674,7 @@
   ;; Set the markdown compiler
   :init (if (eq system-type 'windows-nt)
             (setq markdown-command "c:/libMultiMarkdown-6.7.0/bin/multimarkdown.exe")
-          (setq markdown-command "/home/aitor/utils/MultiMarkdown-6/build/multimarkdown"))
+          (setq markdown-command "~/utils/MultiMarkdown-6/build/multimarkdown"))
   :config
   (defun as/set-markdown-header-font-sizes ()
     (dolist (face '((markdown-header-face-1 . 1.2)
@@ -709,10 +690,105 @@
 
   (add-hook 'markdown-mode-hook 'as/markdown-mode-hook))
 
+;; Org Mode Visual Enhancements
+
+(use-package org
+  :straight nil  ; Use built-in org-mode
+  :config
+  ;; Better looking org-mode
+  (setq org-hide-emphasis-markers t)
+  (setq org-startup-indented t)
+  (setq org-pretty-entities t)
+  (setq org-use-sub-superscripts '{})
+  (setq org-image-actual-width '(400))
+
+  ;; Custom font sizes for headers
+  (dolist (face '((org-level-1 . 1.4)
+                  (org-level-2 . 1.3)
+                  (org-level-3 . 1.2)
+                  (org-level-4 . 1.1)
+                  (org-level-5 . 1.0)
+                  (org-level-6 . 1.0)
+                  (org-level-7 . 1.0)
+                  (org-level-8 . 1.0)))
+    (set-face-attribute (car face) nil :weight 'bold :height (cdr face)))
+
+  ;; Better looking lists
+  (font-lock-add-keywords 'org-mode
+                          '(("^ *\\([-]\\) "
+                             (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
+
+  ;; Custom colors for TODO keywords
+  (setq org-todo-keywords
+        '((sequence "TODO(t)" "IN-PROGRESS(i)" "WAITING(w)" "|" "DONE(d)" "CANCELLED(c)")))
+
+  (setq org-todo-keyword-faces
+        '(("TODO" . (:foreground "#ff6c6b" :weight bold))
+          ("IN-PROGRESS" . (:foreground "#ECBE7B" :weight bold))
+          ("WAITING" . (:foreground "#a9a1e1" :weight bold))
+          ("DONE" . (:foreground "#98be65" :weight bold))
+          ("CANCELLED" . (:foreground "#5B6268" :weight bold))))
+
+  ;; Better block styling
+  (setq org-src-block-faces
+        '(("emacs-lisp" (:background "#2d3748"))
+          ("javascript" (:background "#2d3748"))
+          ("python" (:background "#2d3748"))
+          ("css" (:background "#2d3748"))))
+
+  ;; Enable syntax highlighting in code blocks
+  (setq org-src-fontify-natively t)
+  (setq org-src-tab-acts-natively t)
+  (setq org-confirm-babel-evaluate nil)
+
+  ;; Better table alignment
+  (setq org-table-auto-blank-field nil)
+
+  ;; Org mode hook for additional customizations
+  (add-hook 'org-mode-hook
+            (lambda ()
+              (variable-pitch-mode 1)
+              (visual-line-mode 1)
+              (setq line-spacing 0.1))))
+
+;; Org Bullets for prettier bullet points
+(use-package org-bullets
+  :hook (org-mode . org-bullets-mode)
+  :custom
+  (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
+
+;; Org Superstar (alternative to org-bullets with more features)
+(use-package org-superstar
+  :disabled  ; Enable this instead of org-bullets if preferred
+  :hook (org-mode . org-superstar-mode)
+  :custom
+  (org-superstar-headline-bullets-list '("◉" "○" "●" "○" "●" "○" "●"))
+  (org-superstar-special-todo-items t)
+  (org-superstar-todo-bullet-alist '(("TODO" . "☐")
+                                     ("IN-PROGRESS" . "⚡")
+                                     ("WAITING" . "⏳")
+                                     ("DONE" . "☑")
+                                     ("CANCELLED" . "✘"))))
+
+;; Visual Fill Column for better reading experience
+(use-package visual-fill-column
+  :hook (org-mode . visual-fill-column-mode)
+  :custom
+  (visual-fill-column-width 100)
+  (visual-fill-column-center-text t))
+
+;; Org Modern for a more modern look
+(use-package org-modern
+  :disabled  ; Enable if you want an even more modern look
+  :hook (org-mode . org-modern-mode)
+  :custom
+  (org-modern-keyword nil)
+  (org-modern-checkbox nil)
+  (org-modern-table nil))
+
 ;; LaTex
 
 (use-package reftex
-  :ensure t
   :defer t
   :config
   (setq reftex-cite-prompt-optional-args t)) ;; Prompt for empty optional arguments in cite
@@ -727,11 +803,10 @@
         ("es_ES" "[[:alpha:]]" "[^[:alpha:]]" "['’]" nil ("-d" "es_ES") nil utf-8)))
 
 (use-package auto-dictionary
-  :ensure t
   :init(add-hook 'flyspell-mode-hook (lambda () (auto-dictionary-mode 1))))
 
-(use-package tex
-  :ensure auctex
+(use-package auctex
+  :straight t
   :mode ("\\.tex\\'" . latex-mode)
   :config (progn
 			      (setq TeX-source-correlate-mode t)
@@ -768,25 +843,25 @@
   (with-temp-buffer
     (if (eq system-type 'windows-nt)
         (insert-file-contents "c:/Users/aitor/emacs-openai-key.txt")
-      (insert-file-contents "/home/aitor/Documents/keys/emacs-openai-key.txt"))
+      (insert-file-contents "~/Documents/keys/emacs-openai-key.txt"))
     (string-trim (buffer-string))))
 
 (defun as/read-deepseek-key ()
   (with-temp-buffer
     (if (eq system-type 'windows-nt)
         (insert-file-contents "c:/Users/aitor/emacs-deepseek-key.txt")
-      (insert-file-contents "/home/aitor/Documents/keys/emacs-deepseek-key.txt"))
+      (insert-file-contents "~/Documents/keys/emacs-deepseek-key.txt"))
     (string-trim (buffer-string))))
 
 (defun as/read-anthropic-key ()
   (with-temp-buffer
     (if (eq system-type 'windows-nt)
         (insert-file-contents "c:/Users/aitor/emacs-anthropic-key.txt")
-      (insert-file-contents "/home/aitor/Documents/keys/emacs-anthropic-key.txt"))
+      (insert-file-contents "~/Documents/keys/emacs-anthropic-key.txt"))
     (string-trim (buffer-string))))
 
 (use-package gptel
-  :ensure t :defer t
+  :defer t
   :init
   (setq-default gptel-model 'gpt-4o
                 gptel-api-key #'as/read-openai-key
@@ -861,6 +936,7 @@
 
 (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
 (load custom-file t)
+
 
 ;; Make gc pauses faster by decreasing the threshold. ----------------------------------
 
