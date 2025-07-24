@@ -13,9 +13,8 @@
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
 (global-hl-line-mode 1)
-(global-display-line-numbers-mode 1)
 
-(load-theme 'modus-vivendi t)
+(load-theme 'modus-vivendi-tinted t)
 
 (recentf-mode 1)
 (set-default-coding-systems 'utf-8)
@@ -27,7 +26,7 @@
 (add-to-list 'default-frame-alist '(fullscreen . maximized))
 
 (column-number-mode)
-(global-display-line-numbers-mode t)
+
 
 ;; Tab width --------------------------------------------
 
@@ -42,13 +41,10 @@
 (add-hook 'python-mode-hook (lambda () (setq python-indent-offset 4)))
 
 
-;; Enable line numbers for some modes ---------------------------
-(dolist (mode '(text-mode-hook
-                prog-mode-hook
-                conf-mode-hook))
-  (add-hook mode (lambda () (display-line-numbers-mode 1))))
+;; Display line numbers mode, useful sometimes for coding modes
+(define-key global-map (kbd "<f9>") #'display-line-numbers-mode)
 
-;; Disable line numbers for some modes ---------------------------
+;; Disable line numbers for some modes, even if pressing <f9>
 (dolist (mode '(org-mode-hook
                 eshell-mode-hook
                 shell-mode-hook
@@ -137,52 +133,42 @@
 
 (use-package nerd-icons)
 
-;; Modeline configuration - Enhanced built-in modeline (ACTIVE)
-(setq modus-themes-mode-line '(accented borderless padded))
+;; Mode line configuration --------------------------------------------
 
-;; Configure time display format
-(setq display-time-format "%a %e %b, %H:%M   ")
-(setq display-time-default-load-average nil)  ; Don't show load average
-  
-;; Minimalistic modeline
-(setq-default mode-line-format
-              '("%e"
-                mode-line-front-space
-                
-                ;; Buffer name with icon
-                (:eval (concat " "
-                               (if (fboundp 'nerd-icons-icon-for-buffer)
-                                   (nerd-icons-icon-for-buffer)
-                                 "")
-                               " "))
-                mode-line-buffer-identification
-                
-                ;; Simple modified indicator (no red dot)
-                (:eval (when (buffer-modified-p) " [+]"))
-                
-                ;; Major mode (no icon)
-                " "
-                mode-name
-                
-                ;; Git branch (simplified)
-                (:eval (when (and (fboundp 'magit-get-current-branch)
-                                  (magit-get-current-branch))
-                         (concat " (" (magit-get-current-branch) ")")))
-                
-                ;; Line/column info
-                " %l:%c "
-                
-                ;; Percentage through buffer
-                "[%p]"
-                
-                ;; Right-align the time/date
-                (:eval (propertize " " 'display `(space :align-to (- right-margin 
-                                                                     ,(length (format-time-string display-time-format))))))
-                
-                ;; Date/time at the right
-                (:eval (format-time-string display-time-format))
-                
-                mode-line-end-spaces))
+(use-package doom-modeline
+  :init
+  (doom-modeline-mode 1)
+  :custom
+  (doom-modeline-height 15)
+  (doom-modeline-bar-width 3)
+  (doom-modeline-buffer-file-name-style 'truncate-with-project)
+  (doom-modeline-icon t)
+  (doom-modeline-major-mode-icon t)
+  (doom-modeline-minor-modes nil)
+  (doom-modeline-enable-word-count nil))
+
+(use-package spacious-padding
+  :config
+  (setq spacious-padding-widths
+        '( :internal-border-width 15
+           :header-line-width 4
+           :mode-line-width 6
+           :tab-width 4
+           :right-divider-width 30
+           :scroll-bar-width 8
+           :fringe-width 8))
+
+  ;; Read the doc string of `spacious-padding-subtle-mode-line' as it
+  ;; is very flexible and provides several examples.
+  (setq spacious-padding-subtle-frame-lines
+        `( :mode-line-active 'default
+           :mode-line-inactive vertical-border)))
+
+
+(spacious-padding-mode 1)
+
+;; Set a key binding if you need to toggle spacious padding.
+(define-key global-map (kbd "<f8>") #'spacious-padding-mode)
 
 
 (use-package rainbow-delimiters
@@ -211,13 +197,13 @@
   (aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
   (aw-minibuffer-flag t)
   :config
-  (ace-window-display-mode 1))
+  (ace-window-display-mode 0))
 
 (use-package avy
   :config
   (global-set-key (kbd "C-:") 'avy-goto-char)
   (global-set-key (kbd "C-'") 'avy-goto-char-2)
-  (global-set-key (kbd "C-;") 'avy-goto-char-timer) 
+  (global-set-key (kbd "C-;") 'avy-goto-char-timer)
   (global-set-key (kbd "M-g f") 'avy-goto-line)
   (global-set-key (kbd "M-g w") 'avy-goto-word-1)
   (global-set-key (kbd "M-g e") 'avy-goto-word-0))
@@ -448,9 +434,9 @@
 
 (use-package lsp-mode
   :commands lsp
-  :hook ((typescript-ts-mode js-ts-mode typescript-mode js2-mode web-mode css-ts-mode css-mode scss-mode) . lsp)
+  :hook ((typescript-ts-mode js-ts-mode typescript-mode web-mode css-ts-mode css-mode scss-mode) . lsp)
   :bind (:map lsp-mode-map
-         ("TAB" . completion-at-point))
+              ("TAB" . completion-at-point))
   :custom
   (lsp-headerline-breadcrumb-enable nil)
   (lsp-enable-indentation nil)
@@ -494,10 +480,16 @@
   (company-minimum-prefix-length 1)
   (company-idle-delay 0.2)
   :config
-  (add-to-list 'company-backends 'company-yasnippet))
+  (add-to-list 'company-backends '(company-capf company-yasnippet)))
 
 (use-package company-box
-  :hook (company-mode . company-box-mode))
+  :hook (company-mode . company-box-mode)
+  :config
+  (setq company-box-backends-colors
+        '((company-capf . "lightblue")
+          (company-yasnippet . "lightgreen")
+          (company-files . "lightyellow")
+          (company-dabbrev . "lightpink"))))
 
 ;; Languages
 
