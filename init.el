@@ -39,6 +39,9 @@
 (add-hook 'css-mode-hook (lambda () (setq css-indent-offset 2)))
 (add-hook 'scss-mode-hook (lambda () (setq css-indent-offset 2)))
 (add-hook 'python-mode-hook (lambda () (setq python-indent-offset 4)))
+(add-hook 'js-ts-mode-hook (lambda () (setq js-indent-level 2)))
+(add-hook 'typescript-ts-mode-hook (lambda () (setq typescript-ts-mode-indent-offset 2)))
+(add-hook 'tsx-ts-mode-hook (lambda () (setq typescript-ts-mode-indent-offset 2)))
 
 
 ;; Display line numbers mode, useful sometimes for coding modes
@@ -475,7 +478,7 @@
   :bind (:map company-active-map
          ("<tab>" . company-complete-selection))
         (:map lsp-mode-map
-         ("<tab>" . company-indent-or-complete-common))
+         ("<tab>" . indent-for-tab-command))
   :custom
   (company-minimum-prefix-length 1)
   (company-idle-delay 0.2)
@@ -504,6 +507,7 @@
 (add-to-list 'auto-mode-alist '("\\.cjs\\'" . js-ts-mode))
 (add-to-list 'auto-mode-alist '("\\.mjs\\'" . js-ts-mode))
 (add-to-list 'auto-mode-alist '("\\.jsx\\'" . js-ts-mode))
+(add-to-list 'auto-mode-alist '("\\.json\\'" . json-ts-mode))
 (add-to-list 'magic-mode-alist '("#!/usr/bin/env node" . js-ts-mode))
 
 ;; Use tree-sitter modes for TypeScript
@@ -516,7 +520,6 @@
   :hook ((js-ts-mode . prettier-js-mode)
          (typescript-ts-mode . prettier-js-mode)
          (tsx-ts-mode . prettier-js-mode)
-         (typescript-mode . prettier-js-mode)
          (web-mode . prettier-js-mode)))
 
 ;; HTML
