@@ -39,7 +39,9 @@
 (add-hook 'css-mode-hook (lambda () (setq css-indent-offset 2)))
 (add-hook 'scss-mode-hook (lambda () (setq css-indent-offset 2)))
 (add-hook 'python-mode-hook (lambda () (setq python-indent-offset 4)))
-(add-hook 'js-ts-mode-hook (lambda () (setq js-indent-level 2)))
+(add-hook 'js-ts-mode-hook (lambda ()
+                             (setq js-indent-level 2)
+                             (setq js-jsx-indent-level 2)))
 (add-hook 'typescript-ts-mode-hook (lambda () (setq typescript-ts-mode-indent-offset 2)))
 (add-hook 'tsx-ts-mode-hook (lambda () (setq typescript-ts-mode-indent-offset 2)))
 
@@ -858,10 +860,13 @@
 (use-package gptel
   :defer t
   :init
-  (setq-default gptel-model 'gpt-4o
+  (setq-default gptel-model 'o1
                 gptel-api-key #'as/read-openai-key
                 gptel-stream t
                 gptel-track-media t)
+  (gptel-make-anthropic "Claude" :stream t :key #'as/read-anthropic-key)
+  (gptel-make-deepseek "Deepseek" :stream t :key #'as/read-deepseek-key)
+  (gptel-make-gh-copilot "Copilot")
   :config
   (add-hook 'gptel-post-response-functions 'gptel-end-of-response)
   (defvar gptel-lookup--history nil)
@@ -883,6 +888,8 @@
                             `((display-buffer-in-side-window)
                               (side . bottom)
                               (window-height . ,#'fit-window-to-buffer)))))))))
+
+
 
 (use-package copilot
   :config
