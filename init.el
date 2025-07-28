@@ -49,6 +49,7 @@
 ;; Display line numbers mode, useful sometimes for coding modes
 (define-key global-map (kbd "<f9>") #'display-line-numbers-mode)
 
+
 ;; Disable line numbers for some modes, even if pressing <f9>
 (dolist (mode '(org-mode-hook
                 eshell-mode-hook
@@ -66,6 +67,33 @@
                 vterm-mode-hook
                 doc-view-mode-hook))
   (add-hook mode (lambda () (setq-local global-hl-line-mode nil))))
+
+;; Copy and cut line keybindins
+
+(defun as/copy-line ()
+  "Copy the current line to the kill ring without moving cursor."
+  (interactive)
+  (save-excursion
+    (kill-ring-save (line-beginning-position) (line-beginning-position 2)))
+  (message "Line copied to kill ring"))
+
+(defun as/cut-line ()
+  "Cut current line to kill ring."
+  (interactive)
+  (kill-whole-line)
+  (message "Line cut"))
+
+(global-set-key (kbd "C-c c") 'as/copy-line)
+(global-set-key (kbd "C-c x") 'as/cut-line)
+
+
+
+(defun as/reload-buffer ()
+  "Reload the current buffer."
+  (interactive)
+  (revert-buffer t t))
+
+(global-set-key (kbd "<f5>") 'as/reload-buffer)
 
 ;; Font family
 (set-face-attribute 'default nil :family "Iosevka NF" :height 120)
@@ -109,6 +137,16 @@
   (setq exec-path-from-shell-variables '("PATH" "MANPATH" "PYTHONPATH"))
   ;; Initialize exec-path-from-shell
   (exec-path-from-shell-initialize))
+
+;; Revert buffer settings
+
+(use-package autorevert
+  :straight nil
+  :config
+  (global-auto-revert-mode 1)
+  (setq auto-revert-use-notify t)
+  (setq auto-revert-verbose nil)
+  (setq auto-revert-interval 0.5))
 
 ;; ivy mode for lower buffer completion
 
@@ -212,7 +250,6 @@
   (global-set-key (kbd "M-g f") 'avy-goto-line)
   (global-set-key (kbd "M-g w") 'avy-goto-word-1)
   (global-set-key (kbd "M-g e") 'avy-goto-word-0))
-
 
 (use-package ivy-rich
   :init
@@ -320,7 +357,7 @@
   :diminish projectile-mode
   :config (projectile-mode)
   :bind-keymap
-  ("C-c o" . projectile-command-map)
+  ("C-c p" . projectile-command-map)
   :init
   (when (file-directory-p "~/Projects")
     (setq projectile-project-search-path '("~/Projects")))
@@ -329,6 +366,7 @@
 (use-package counsel-projectile
   :after projectile
   :config (counsel-projectile-mode))
+
 
 ;; Magit
 
@@ -461,6 +499,28 @@
 
 ;; Treemacs git mode set to simple. Does not require python 3
 (setq treemacs-git-mode 'simple)
+
+;; Tremacs config
+
+(use-package treemacs
+  :bind (("C-c t" . as/treemacs-toggle-and-focus))
+  :config
+  (setq treemacs-width 35)
+  (setq treemacs-follow-mode t)
+  (setq treemacs-filewatch-mode t))
+
+(use-package treemacs-projectile
+  :after (treemacs-projectile)
+  :ensure t)
+
+(use-package treemacs-icons-dired
+  :hook (dired-mode . treemacs-icons-dired-enable-once)
+  :ensure t)
+
+(use-package treemacs-magit
+  :after (treemacs-magit)
+  :ensure t)
+
 
 (setq lsp-ui-sideline-enable nil)
 (setq lsp-ui-sideline-show-hover nil)
@@ -903,8 +963,6 @@
   :bind
   ("M-/" . copilot-complete)
   ("C-c f". copilot-accept-completion)
-  ("C-c n" . copilot-next-completion)
-  ("C-c p" . copilot-previous-completion)
   ("C-c l" . copilot-accept-line)
   ("C-c m" . copilot-accept-completion-by-word)
   :hook (prog-mode . copilot-mode))
@@ -916,10 +974,12 @@
   (setenv "ANTHROPIC_API_KEY" (as/read-anthropic-key))
   (setenv "DEEPSEEK_API_KEY" (as/read-deepseek-key))
   (setenv "OPENAI_API_KEY" (as/read-openai-key))
+  ;; (setq aidermacs-extra-args '("--thinking-tokens" "16k"))
   :custom
   (aidermacs-default-chat-mode 'architect)
   (aidermacs-default-model "sonnet")
   (aidermacs-backend 'vterm))
+
 
 ;; Startup time
 
