@@ -35,6 +35,9 @@
                             (setq tab-width 2)
                             (setq indent-tabs-mode nil)))
 
+;; Enable smart indentation on new lines
+(electric-indent-mode 1)
+
 ;; Mode-specific indentation settings
 (add-hook 'css-mode-hook (lambda () (setq css-indent-offset 2)))
 (add-hook 'scss-mode-hook (lambda () (setq css-indent-offset 2)))
@@ -46,7 +49,10 @@
 (add-hook 'tsx-ts-mode-hook (lambda () (setq typescript-ts-mode-indent-offset 2)))
 
 
-;; Display line numbers mode, useful sometimes for coding modes
+;; Enable line numbers by default in programming modes
+(add-hook 'prog-mode-hook #'display-line-numbers-mode)
+
+;; Display line numbers mode trigger in programming modes
 (define-key global-map (kbd "<f9>") #'display-line-numbers-mode)
 
 
@@ -94,6 +100,16 @@
   (revert-buffer t t))
 
 (global-set-key (kbd "<f5>") 'as/reload-buffer)
+
+(defun as/toggle-indent-guides ()
+  "Toggle indent guides on/off."
+  (interactive)
+  (if (bound-and-true-p highlight-indent-guides-mode)
+      (highlight-indent-guides-mode -1)
+    (highlight-indent-guides-mode 1))
+  (message "Indent guides %s" (if highlight-indent-guides-mode "enabled" "disabled")))
+
+(global-set-key (kbd "<f7>") 'as/toggle-indent-guides)
 
 ;; Font family
 (set-face-attribute 'default nil :family "Iosevka NF" :height 120)
@@ -216,6 +232,18 @@
 
 (use-package rainbow-delimiters
   :hook (prog-mode . rainbow-delimiters-mode))
+
+;; Indent guides in prog-mode
+(use-package highlight-indent-guides
+  :hook (prog-mode . highlight-indent-guides-mode)
+  :custom
+  (highlight-indent-guides-method 'character)
+  (highlight-indent-guides-character ?\┊)  ; Very thin vertical line
+  (highlight-indent-guides-responsive nil)
+  (highlight-indent-guides-delay 0.1)
+  :config
+  (setq highlight-indent-guides-auto-enabled nil)
+  (set-face-foreground 'highlight-indent-guides-character-face "gray40"))
 
 (use-package which-key
   :init (which-key-mode)
@@ -473,29 +501,70 @@
      (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
      (node "https://github.com/tree-sitter/node-tree-sitter")))
 
-;; lsp-mode and company-mode configuration ----------------------------------------
-
-(use-package lsp-mode
-  :commands lsp
-  :hook ((typescript-ts-mode js-ts-mode typescript-mode web-mode css-ts-mode css-mode scss-mode) . lsp)
-  :bind (:map lsp-mode-map
-              ("TAB" . completion-at-point))
+;; Eglot LSP client (built-in)
+(use-package eglot
+  :straight nil
+  :hook ((typescript-ts-mode js-ts-mode typescript-mode web-mode 
+          css-ts-mode css-mode scss-mode python-mode) . eglot-ensure)
   :custom
-  (lsp-headerline-breadcrumb-enable nil)
-  (lsp-enable-indentation nil)
-  (lsp-enable-on-type-formatting nil)
-  (lsp-eslint-enable nil))
-
-(use-package lsp-ui
-  :hook (lsp-mode . lsp-ui-mode)
+  (eglot-autoshutdown t)
+  (eglot-confirm-server-initiated-edits nil)
+  (eglot-extend-to-xref t)
   :config
-  (setq lsp-ui-sideline-enable t)
-  (setq lsp-ui-sideline-show-hover nil)
-  (setq lsp-ui-doc-position 'bottom)
-  (lsp-ui-doc-show))
+  (add-to-list 'eglot-server-programs 
+               '((js-ts-mode typescript-ts-mode tsx-ts-mode) . ("typescript-language-server" "--stdio")))
+  (add-to-list 'eglot-server-programs
+               '(python-mode . ("pylsp"))))
 
-(use-package lsp-treemacs
-  :after lsp-mode)
+;; Corfu completion framework
+(use-package corfu
+  :custom
+  (corfu-cycle t)
+  (corfu-auto t)
+  (corfu-auto-delay 0.2)
+  (corfu-auto-prefix 1)
+  (corfu-separator ?\s)
+  (corfu-scroll-margin 5)
+  (corfu-count 16)
+  (corfu-max-width 120)
+  :bind
+  (:map corfu-map
+        ("TAB" . corfu-next)
+        ([tab] . corfu-next)
+        ("S-TAB" . corfu-previous)
+        ([backtab] . corfu-previous))
+  :init
+  (global-corfu-mode))
+
+;; Cape for additional completion sources
+(use-package cape
+  :init
+  ;; Add these additional completion sources
+  (add-to-list 'completion-at-point-functions #'cape-dabbrev)   ; Words from buffers
+  (add-to-list 'completion-at-point-functions #'cape-file)      ; File paths
+  (add-to-list 'completion-at-point-functions #'cape-history)   ; Shell/command history
+  (add-to-list 'completion-at-point-functions #'cape-keyword))  ; Programming keywords
+
+;; Corfu popup info
+(use-package corfu-popupinfo
+  :straight nil
+  :after corfu
+  :hook (corfu-mode . corfu-popupinfo-mode)
+  :custom
+  (corfu-popupinfo-delay '(0.25 . 0.1))
+  (corfu-popupinfo-hide nil))
+
+;; Icons for Corfu
+(use-package nerd-icons-corfu
+  :after corfu
+  :config
+  (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))
+
+;; Better completion matching
+(use-package orderless
+  :custom
+  (completion-styles '(orderless basic))
+  (completion-category-overrides '((file (styles basic partial-completion)))))
 
 ;; Treemacs git mode set to simple. Does not require python 3
 (setq treemacs-git-mode 'simple)
@@ -522,39 +591,6 @@
   :ensure t)
 
 
-(setq lsp-ui-sideline-enable nil)
-(setq lsp-ui-sideline-show-hover nil)
-
-(use-package dap-mode
-  :custom
-  (lsp-enable-dap-auto-configure nil)
-  :config
-  (dap-ui-mode 1)
-  (dap-tooltip-mode 1)
-  (require 'dap-node)
-  (dap-node-setup))
-
-(use-package company
-  :after (lsp-mode)
-  :hook (lsp-mode . company-mode)
-  :bind (:map company-active-map
-         ("<tab>" . company-complete-selection))
-        (:map lsp-mode-map
-         ("<tab>" . indent-for-tab-command))
-  :custom
-  (company-minimum-prefix-length 1)
-  (company-idle-delay 0.2)
-  :config
-  (add-to-list 'company-backends '(company-capf company-yasnippet)))
-
-(use-package company-box
-  :hook (company-mode . company-box-mode)
-  :config
-  (setq company-box-backends-colors
-        '((company-capf . "lightblue")
-          (company-yasnippet . "lightgreen")
-          (company-files . "lightyellow")
-          (company-dabbrev . "lightpink"))))
 
 ;; Languages
 
@@ -638,14 +674,11 @@
 ;; Python
 
 (use-package python-mode
-  :hook (python-mode . lsp-deferred)
+  :hook (python-mode . eglot-ensure)
   :custom
   ;; NOTE: Set these if Python 3 is called "python3" on your system!
   ;; (python-shell-interpreter "python3")
-  ;; (dap-python-executable "python3")
-  (dap-python-debugger 'debugpy)
-  :config
-  (require 'dap-python))
+  (python-indent-offset 4))
 
 (use-package pyvenv
   :after python-mode
@@ -669,13 +702,12 @@
         smart-tab      ; C-b & C-f jump positions and smart shift with tab & S-tab.
         smart-yank)))  ; Yank behavior depend on mode.
 
-(add-hook 'emacs-lisp-mode-hook 'company-mode)
 
 ;; Flycheck syntax checking
 
 (use-package flycheck
   :defer t
-  :hook (lsp-mode . flycheck-mode))
+  :hook (prog-mode . flycheck-mode))
 
 ;; Snippets
 
@@ -690,12 +722,18 @@
 (use-package react-snippets
   :after yasnippet)
 
+;; Use yasnippet's built-in completion function instead
+(with-eval-after-load 'yasnippet
+  (add-to-list 'completion-at-point-functions #'yas-expand-from-trigger-key))
+
 ;; Smartparens
 
 (use-package smartparens
   :hook (prog-mode . smartparens-mode)
   :config
   (require 'smartparens-config)
+  ;; Make smartparens less aggressive with auto-pairing to avoid conflicts with Copilot
+  (setq sp-autoinsert-if-followed-by-word nil)
   (sp-pair "{" nil :post-handlers '(("||\n[i]" "RET")))
   (sp-pair "[" nil :post-handlers '(("||\n[i]" "RET")))
   (sp-pair "(" nil :post-handlers '(("||\n[i]" "RET"))))
@@ -885,14 +923,17 @@
 					            (lambda ()
 						            (reftex-mode t)
 						            (flyspell-mode t)
-                        (company-mode t)
-                        (smartparens-mode t)))
+                        (smartparens-mode t)
+                        ;; Add cape-tex for TeX symbol completion
+                        (add-to-list 'completion-at-point-functions #'cape-tex)))
 			      )
   )
 
-(use-package company-auctex
-  :after (latex-mode company-mode)
-  :config (company-auctex-init))
+
+;; Add cape-elisp-symbol to Emacs Lisp mode
+(add-hook 'emacs-lisp-mode-hook
+          (lambda ()
+            (add-to-list 'completion-at-point-functions #'cape-elisp-symbol)))
 
 ;; AI tools ------------------------------------------------------------
 
@@ -954,7 +995,7 @@
 (use-package copilot
   :config
   (setq copilot-log-max 0)
-  (setq copilot-idle-delay 0.5)
+  (setq copilot-idle-delay 1.2)
   (add-to-list 'copilot-indentation-alist '(prog-mode 2))
   (add-to-list 'copilot-indentation-alist '(org-mode 2))
   (add-to-list 'copilot-indentation-alist '(text-mode 2))
