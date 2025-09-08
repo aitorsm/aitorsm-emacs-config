@@ -93,23 +93,12 @@
 (global-set-key (kbd "C-c x") 'as/cut-line)
 
 
-
 (defun as/reload-buffer ()
   "Reload the current buffer."
   (interactive)
   (revert-buffer t t))
 
 (global-set-key (kbd "<f5>") 'as/reload-buffer)
-
-(defun as/toggle-indent-guides ()
-  "Toggle indent guides on/off."
-  (interactive)
-  (if (bound-and-true-p highlight-indent-guides-mode)
-      (highlight-indent-guides-mode -1)
-    (highlight-indent-guides-mode 1))
-  (message "Indent guides %s" (if highlight-indent-guides-mode "enabled" "disabled")))
-
-(global-set-key (kbd "<f7>") 'as/toggle-indent-guides)
 
 ;; Font family
 (set-face-attribute 'default nil :family "Iosevka NF" :height 120)
@@ -232,18 +221,6 @@
 
 (use-package rainbow-delimiters
   :hook (prog-mode . rainbow-delimiters-mode))
-
-;; Indent guides in prog-mode
-(use-package highlight-indent-guides
-  :hook (prog-mode . highlight-indent-guides-mode)
-  :custom
-  (highlight-indent-guides-method 'character)
-  (highlight-indent-guides-character ?\┊)  ; Very thin vertical line
-  (highlight-indent-guides-responsive nil)
-  (highlight-indent-guides-delay 0.1)
-  :config
-  (setq highlight-indent-guides-auto-enabled nil)
-  (set-face-foreground 'highlight-indent-guides-character-face "gray40"))
 
 (use-package which-key
   :init (which-key-mode)
