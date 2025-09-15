@@ -487,29 +487,59 @@
   (eglot-autoshutdown t)
   (eglot-confirm-server-initiated-edits nil)
   (eglot-extend-to-xref t)
+  (eglot-events-buffer-size 0)           ; Disable event logging to reduce overhead
+  (eglot-report-progress nil)            ; Disable progress reporting
+  (eglot-send-changes-idle-time 0.8)     ; Increase from 0.5 to reduce server load
+  (eglot-sync-connect 3)                 ; Increase timeout
+  (eglot-connect-timeout 15)             ; Increase connection timeout
   :config
+  
+  ;; More robust server configuration
   (add-to-list 'eglot-server-programs 
-               '((js-ts-mode typescript-ts-mode tsx-ts-mode) . ("typescript-language-server" "--stdio")))
+               '((js-mode js-ts-mode typescript-mode typescript-ts-mode tsx-ts-mode) 
+                 . ("typescript-language-server" "--stdio" "--log-level" "1")))
   (add-to-list 'eglot-server-programs
-               '(python-mode . ("pylsp"))))
+               '(python-mode . ("pylsp")))
+  
+  ;; Disable problematic features that cause crashes
+  (setq eglot-ignored-server-capabilities 
+        '(:inlayHintProvider :documentHighlightProvider :documentFormattingProvider)))
+
+;; Ensure files are properly registered with Eglot
+(add-hook 'eglot-managed-mode-hook
+          (lambda ()
+            (when (buffer-file-name)
+              (eglot--signal-textDocument/didOpen))))
 
 ;; Corfu completion framework
 (use-package corfu
   :custom
-  (corfu-cycle t)
+  (corfu-cycle nil)                   ; Don't cycle completions (more like VS Code)
   (corfu-auto t)
   (corfu-auto-delay 0.2)
-  (corfu-auto-prefix 1)
+  (corfu-auto-prefix 2)
   (corfu-separator ?\s)
   (corfu-scroll-margin 5)
   (corfu-count 16)
   (corfu-max-width 120)
+  (corfu-preselect 'prompt)
+  (corfu-quit-no-match 'separator)    ; Quit if no match after typing separator
+  (corfu-quit-at-boundary 'separator) ; Quit at word boundaries
   :bind
   (:map corfu-map
-        ("TAB" . corfu-next)
-        ([tab] . corfu-next)
+        ("TAB" . corfu-complete)
+        ([tab] . corfu-complete)
         ("S-TAB" . corfu-previous)
-        ([backtab] . corfu-previous))
+        ([backtab] . corfu-previous)
+        ("C-n" . corfu-next)
+        ("C-p" . corfu-previous)
+        ("RET" . corfu-insert)          ; Enter accepts completion
+        ([M-backspace] . backward-kill-word)
+        ([M-d] . kill-word)           ; M-d deletes the next word
+        ([return] . corfu-insert)
+        ("C-g" . corfu-quit)
+        ([M-o] . ace-window)
+        ("SPC" . corfu-insert-separator)) ; Space can insert and continue
   :init
   (global-corfu-mode))
 
@@ -1017,6 +1047,17 @@
 (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
 (load custom-file t)
 
+
+;; Suppress specific Eglot notification messages
+(defun as/eglot-handle-notification-advice (orig-fun server method &rest params)
+  "Suppress noisy Eglot notification messages."
+  (unless (and (string= method "window/showMessage")
+               (plist-get (car params) :message)
+               (string-match-p "Inlay Hints request failed\\|document should be opened first"
+                              (plist-get (car params) :message)))
+    (apply orig-fun server method params)))
+
+(advice-add 'eglot-handle-notification :around #'as/eglot-handle-notification-advice)
 
 ;; Make gc pauses faster by decreasing the threshold. ----------------------------------
 
