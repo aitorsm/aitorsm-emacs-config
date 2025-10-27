@@ -229,9 +229,10 @@
   (setq which-key-idle-delay 1))
 
 (use-package savehist
+  :init (savehist-mode)
+  :ensure nil
   :config
-  (setq history-length 25)
-  (savehist-mode 1))
+  (setq history-length 25))
 
   ;; Individual history elements can be configured separately
   ;;(put 'minibuffer-history 'history-length 25)
@@ -478,88 +479,53 @@
      (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
      (node "https://github.com/tree-sitter/node-tree-sitter")))
 
-;; Eglot LSP client (built-in)
+;; Eglot (built-in client for LSP)
 (use-package eglot
-  :straight nil
+  :ensure nil
+  :functions (eglot-ensure)
+  :commands (eglot)
   :hook ((typescript-ts-mode js-ts-mode typescript-mode web-mode 
           css-ts-mode css-mode scss-mode python-mode) . eglot-ensure)
   :custom
+  (eglot-sync-connect nil)
   (eglot-autoshutdown t)
-  (eglot-confirm-server-initiated-edits nil)
-  (eglot-extend-to-xref t)
-  (eglot-events-buffer-size 0)           ; Disable event logging to reduce overhead
-  (eglot-report-progress nil)            ; Disable progress reporting
-  (eglot-send-changes-idle-time 0.8)     ; Increase from 0.5 to reduce server load
-  (eglot-sync-connect 3)                 ; Increase timeout
-  (eglot-connect-timeout 15)             ; Increase connection timeout
   :config
-  
-  ;; More robust server configuration
   (add-to-list 'eglot-server-programs 
                '((js-mode js-ts-mode typescript-mode typescript-ts-mode tsx-ts-mode) 
                  . ("typescript-language-server" "--stdio" "--log-level" "1")))
   (add-to-list 'eglot-server-programs
-               '(python-mode . ("pylsp")))
-  
-  ;; Disable problematic features that cause crashes
-  (setq eglot-ignored-server-capabilities 
-        '(:inlayHintProvider :documentHighlightProvider :documentFormattingProvider)))
+               '(python-mode . ("pylsp"))))
 
-;; Ensure files are properly registered with Eglot
-(add-hook 'eglot-managed-mode-hook
-          (lambda ()
-            (when (buffer-file-name)
-              (eglot--signal-textDocument/didOpen))))
+;; Orderless
+(use-package orderless
+  :ensure t
+  :config
+  (setq completion-styles '(orderless basic))
+  (setq completion-category-defaults nil)
+  (setq completion-category-overrides nil))
+
 
 ;; Corfu completion framework
 (use-package corfu
-  :custom
-  (corfu-cycle nil)                   ; Don't cycle completions (more like VS Code)
-  (corfu-auto t)
-  (corfu-auto-delay 0.2)
-  (corfu-auto-prefix 2)
-  (corfu-separator ?\s)
-  (corfu-scroll-margin 5)
-  (corfu-count 16)
-  (corfu-max-width 120)
-  (corfu-preselect 'prompt)
-  (corfu-quit-no-match 'separator)    ; Quit if no match after typing separator
-  (corfu-quit-at-boundary 'separator) ; Quit at word boundaries
+  :ensure t
+  :init (global-corfu-mode)
   :bind
   (:map corfu-map
         ("TAB" . corfu-complete)
-        ([tab] . corfu-complete)
-        ("S-TAB" . corfu-previous)
-        ([backtab] . corfu-previous)
-        ("C-n" . corfu-next)
-        ("C-p" . corfu-previous)
-        ("RET" . corfu-insert)          ; Enter accepts completion
         ([M-backspace] . backward-kill-word)
-        ([M-d] . kill-word)           ; M-d deletes the next word
-        ([return] . corfu-insert)
-        ("C-g" . corfu-quit)
-        ([M-o] . ace-window)
-        ("SPC" . corfu-insert-separator)) ; Space can insert and continue
-  :init
-  (global-corfu-mode))
-
-;; Cape for additional completion sources
-(use-package cape
-  :init
-  ;; Add these additional completion sources
-  (add-to-list 'completion-at-point-functions #'cape-dabbrev)   ; Words from buffers
-  (add-to-list 'completion-at-point-functions #'cape-file)      ; File paths
-  (add-to-list 'completion-at-point-functions #'cape-history)   ; Shell/command history
-  (add-to-list 'completion-at-point-functions #'cape-keyword))  ; Programming keywords
-
-;; Corfu popup info
-(use-package corfu-popupinfo
-  :straight nil
-  :after corfu
-  :hook (corfu-mode . corfu-popupinfo-mode)
-  :custom
-  (corfu-popupinfo-delay '(0.25 . 0.1))
-  (corfu-popupinfo-hide nil))
+        ([M-d] . kill-word)
+        ([M-o] . ace-window))
+  :config
+  (setq corfu-auto t)
+  (setq tab-always-indent 'complete)
+  (setq corfu-preview-current nil)
+  (setq corfu-auto-delay 0.2)
+  (setq corfu-popupinfo-delay '(1.25 . 0.5))
+  (corfu-popupinfo-mode 1)
+  (with-eval-after-load 'savehist
+    (corfu-history-mode 1)
+    (add-to-list 'savehist-additional-variables 'corfu-history))
+)
 
 ;; Icons for Corfu
 (use-package nerd-icons-corfu
@@ -567,11 +533,6 @@
   :config
   (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))
 
-;; Better completion matching
-(use-package orderless
-  :custom
-  (completion-styles '(orderless basic))
-  (completion-category-overrides '((file (styles basic partial-completion)))))
 
 ;; Treemacs git mode set to simple. Does not require python 3
 (setq treemacs-git-mode 'simple)
@@ -715,23 +676,6 @@
 (use-package flycheck
   :defer t
   :hook (prog-mode . flycheck-mode))
-
-;; Snippets
-
-(use-package yasnippet
-  :hook (prog-mode . yas-minor-mode)
-  :config
-  (yas-reload-all))
-
-(use-package yasnippet-snippets
-  :after yasnippet)
-
-(use-package react-snippets
-  :after yasnippet)
-
-;; Use yasnippet's built-in completion function instead
-(with-eval-after-load 'yasnippet
-  (add-to-list 'completion-at-point-functions #'yas-expand-from-trigger-key))
 
 ;; Smartparens
 
@@ -1025,7 +969,7 @@
   ;; (setq aidermacs-extra-args '("--thinking-tokens" "16k"))
   :custom
   (aidermacs-default-chat-mode 'architect)
-  (aidermacs-default-model "sonnet")
+  (aidermacs-default-model "r1")
   (aidermacs-backend 'vterm))
 
 
